@@ -23,20 +23,22 @@ jobs:
       - name: Build with Maven
         run: mvn clean install
 
-    #   - name: Upload Build Artifacts
-    #     uses: actions/upload-artifact@v3
-    #     with:
-    #       name: java-artifacts
-    #       path: target/*.jar  # Adjust this to match your build output
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: java-artifacts
+          path: target/*.jar
 
   approval:
     name: Request Manager Approval
     needs: build
-    uses: ./reusable-approval.yml  # Reference the reusable approval workflow
+    uses: ./.github/workflows/reusable-approval.yml@main  # Reference reusable workflow
+    with:
+      approvers: "manager-github-username"  # Replace with the manager's GitHub username
 
   deploy:
     name: Deploy Application
     needs: approval
-    uses: ./reusable-deploy.yml  # Reference the reusable deployment workflow
+    uses: ./.github/workflows/reusable-deploy.yml@main  # Reference reusable workflow
     with:
       environment: production
