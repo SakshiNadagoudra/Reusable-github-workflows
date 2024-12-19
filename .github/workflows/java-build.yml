@@ -32,13 +32,13 @@ jobs:
   approval:
     name: Request Manager Approval
     needs: build
-    uses: ./.github/workflows/reusable-approval.yml@main  # Reference reusable workflow
+    uses: ./.github/workflows/reusable-approval.yml  # Reference reusable workflow
     with:
       approvers: "manager-github-username"  # Replace with the manager's GitHub username
 
   deploy:
     name: Deploy Application
     needs: approval
-    uses: ./.github/workflows/reusable-deploy.yml@main  # Reference reusable workflow
+    uses: ./.github/workflows/reusable-deploy.yml # Reference reusable workflow
     with:
-      environment: production
+      environment: dev
