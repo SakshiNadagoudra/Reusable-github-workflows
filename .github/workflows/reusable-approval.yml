@@ -1,0 +1,22 @@
+name: Reusable Manager Approval Workflow
+
+on:
+  workflow_call:
+    inputs:
+      approvers:
+        description: 'GitHub usernames of approvers (comma-separated)'
+        required: true
+        type: string
+
+jobs:
+  approval:
+    name: Manager Approval
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Wait for Manager Approval
+        uses: aymenbida/await-approval-action@v1.0.2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          approvers: ${{ inputs.approvers }}
+          label: "manager-approval"  # Custom label for clarity

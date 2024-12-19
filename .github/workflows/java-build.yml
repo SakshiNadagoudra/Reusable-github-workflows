@@ -1,0 +1,42 @@
+name: Build and Deploy Java Application
+
+on:
+  push:
+    branches:
+      - main  # Trigger on pushes to the main branch
+
+jobs:
+  build:
+    name: Build Java Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+
+      - name: Build with Maven
+        run: mvn clean install
+
+    #   - name: Upload Build Artifacts
+    #     uses: actions/upload-artifact@v3
+    #     with:
+    #       name: java-artifacts
+    #       path: target/*.jar  # Adjust this to match your build output
+
+  approval:
+    name: Request Manager Approval
+    needs: build
+    uses: ./reusable-approval.yml  # Reference the reusable approval workflow
+
+  deploy:
+    name: Deploy Application
+    needs: approval
+    uses: ./reusable-deploy.yml  # Reference the reusable deployment workflow
+    with:
+      environment: production
