@@ -12,10 +12,12 @@ jobs:
   approval:
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for approval
-        uses: peter-evans/approve-action@v2
+      - name: Wait for Manager Approval
+        uses: hmarr/auto-approve-action@v2
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          approvers: "manager-github-username"  # Replace with the manager's GitHub username
+          allow-empty-comments: true
 
 
       
