@@ -10,13 +10,12 @@ on:
 
 jobs:
   approval:
-    name: Manager Approval
     runs-on: ubuntu-latest
-
     steps:
-      - name: Wait for Manager Approval
-        uses: aymenbida/await-approval-action@v1.0.2
+      - name: Wait for approval
+        uses: peter-evans/approve-action@v2
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          approvers: ${{ inputs.approvers }}
-          label: "manager-approval"  # Custom label for clarity
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+
+      
