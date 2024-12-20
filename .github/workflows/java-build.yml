@@ -43,7 +43,6 @@
 #     with:
 #       environment: dev
 
-
 name: Multi-stage Deployment with Approval
 
 on:
@@ -93,10 +92,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     environment: production  # This environment requires approval
-    uses: ./.github/workflows/reusable-deploy.yml  # Reference reusable workflow
-    with:
-      environment: production  # Pass the environment input to the reusable workflow
-      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Call Reusable Deploy Workflow
+        uses: ./.github/workflows/reusable-deploy.yml  # Reference reusable workflow
+        with:
+          environment: production  # Pass the environment input to the reusable workflow
+
 #     steps:
 #       - name: Checkout code
 #         uses: actions/checkout@v3
