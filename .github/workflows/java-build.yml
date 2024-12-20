@@ -88,7 +88,6 @@ jobs:
 
   # Stage 3: Production (requires manual approval from manager)
   deploy-to-production:
-    runs-on: ubuntu-latest
     needs: test
     environment: production  # This environment requires approval
     uses: ./.github/workflows/reusable-deploy.yml  # Reference reusable workflow
