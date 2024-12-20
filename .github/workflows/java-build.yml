@@ -49,7 +49,7 @@ jobs:
   deploy-Dev:
     name: Deploy to Dev Environment
     needs: test
-    uses: SakshiNadagoudra/Reusable-github-workflows/ .github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
+    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
     with:
       environment: dev  # Pass the environment name to the reusable workflow
 
@@ -57,6 +57,6 @@ jobs:
   deploy-Prod:
     name: Deploy to Production
     needs: deploy-Dev
-    uses: SakshiNadagoudra/Reusable-github-workflows/ .github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
+    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
     with:
       environment: production
