@@ -29,19 +29,19 @@ jobs:
           name: build-artifacts
           path: target/*.jar
 
-  # approval:
-  #   name: Request Manager Approval
-  #   needs: build
-  #   uses: ./.github/workflows/reusable-approval.yml  # Reference reusable workflow
-  #   with:
-  #     approvers: "manager-github-username"  # Replace with the manager's GitHub username
-
-  deploy:
+  deploy-Dev:
     name: Deploy Application
     needs: build
     uses: ./.github/workflows/reusable-deploy.yml # Reference reusable workflow
     with:
       environment: dev
+
+  deploy-Prod:
+    name: Deploy Application
+    needs: deploy-Dev
+    uses: ./.github/workflows/reusable-deploy.yml # Reference reusable workflow
+    with:
+      environment: production
 
 # name: Multi-stage Deployment with Approval
 
@@ -94,3 +94,5 @@ jobs:
 #     uses: ./.github/workflows/reusable-deploy.yml  # Reference reusable workflow
 #       with:
 #         environment: production  # Pass the environment input to the reusable workflow
+
+
