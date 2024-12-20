@@ -92,13 +92,20 @@ jobs:
   deploy-to-production:
     runs-on: ubuntu-latest
     needs: test
-    environment: production # Environment for production deployment
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    uses: ./.github/workflows/reusable-deploy.yml # Reference reusable workflow
+    with:
+      environment: production # Environment for production deployment
+    
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v3
 
-      - name: Deploy to Production
-        run: |
-          echo "Deploying to production"
-          # Add your production deployment script here
+#       - name: Deploy to Production
+#         run: |
+#           echo "Deploying to production"
+#           # Add your production deployment script here
+# name: Deploy Application
+# #     needs: approval
+# #     uses: ./.github/workflows/reusable-deploy.yml # Reference reusable workflow
+# #     with:
+# #       environment: dev
