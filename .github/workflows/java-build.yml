@@ -38,7 +38,7 @@ jobs:
 
   deploy:
     name: Deploy Application
-    needs: approval
+    needs: build
     uses: ./.github/workflows/reusable-deploy.yml # Reference reusable workflow
     with:
       environment: dev
