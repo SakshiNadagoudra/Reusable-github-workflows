@@ -29,9 +29,20 @@ jobs:
           name: build-artifacts
           path: target/*.jar
 
+  # Stage 2: Testing (requires manual approval)
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    environment: test  # This environment can have an approval gate
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Tests
+        run: mvn test          
+
   deploy-Dev:
     name: Deploy Dev
-    environment: dev
     needs: build
     uses: ./.github/workflows/reusable-deploy.yml # Reference reusable workflow
     with:
@@ -39,7 +50,6 @@ jobs:
 
   deploy-Prod:
     name: Deploy Prod
-    environment: production
     needs: deploy-Dev
     uses: ./.github/workflows/reusable-deploy.yml # Reference reusable workflow
     with:
