@@ -80,7 +80,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     needs: build
-    environment: test # This environment can have approval gate
+    environment: test  # This environment can have an approval gate
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -92,11 +92,11 @@ jobs:
   deploy-to-production:
     runs-on: ubuntu-latest
     needs: test
-    environment: production
-    uses: ./.github/workflows/reusable-deploy.yml # Reference reusable workflow
+    environment: production  # This environment requires approval
+    uses: ./.github/workflows/reusable-deploy.yml  # Reference reusable workflow
     with:
-      environment: production
-    
+      environment: production  # Pass the environment input to the reusable workflow
+      
 #     steps:
 #       - name: Checkout code
 #         uses: actions/checkout@v3
