@@ -42,7 +42,6 @@
 #     uses: ./.github/workflows/reusable-deploy.yml # Reference reusable workflow
 #     with:
 #       environment: dev
-
 name: Multi-stage Deployment with Approval
 
 on:
@@ -100,17 +99,3 @@ jobs:
         uses: ./.github/workflows/reusable-deploy.yml  # Reference reusable workflow
         with:
           environment: production  # Pass the environment input to the reusable workflow
-
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v3
-
-#       - name: Deploy to Production
-#         run: |
-#           echo "Deploying to production"
-#           # Add your production deployment script here
-# name: Deploy Application
-# #     needs: approval
-# #     uses: ./.github/workflows/reusable-deploy.yml # Reference reusable workflow
-# #     with:
-# #       environment: dev

@@ -20,7 +20,7 @@ jobs:
       - name: Download Build Artifacts
         uses: actions/download-artifact@v3
         with:
-          name: java-artifacts
+          name: build-artifacts  # Ensure this matches the artifact name in the main workflow
 
       - name: Deploy Application
         run: |
