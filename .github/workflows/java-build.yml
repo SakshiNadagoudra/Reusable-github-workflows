@@ -30,14 +30,16 @@ jobs:
           path: target/*.jar
 
   deploy-Dev:
-    name: Deploy Application
+    name: Deploy Dev
+    environment: dev
     needs: build
     uses: ./.github/workflows/reusable-deploy.yml # Reference reusable workflow
     with:
       environment: dev
 
   deploy-Prod:
-    name: Deploy Application
+    name: Deploy Prod
+    environment: production
     needs: deploy-Dev
     uses: ./.github/workflows/reusable-deploy.yml # Reference reusable workflow
     with:
