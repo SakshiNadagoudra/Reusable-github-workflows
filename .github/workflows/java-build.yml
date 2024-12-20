@@ -31,13 +31,13 @@ jobs:
           name: build-artifacts
           path: target/*.jar
 
-  # Stage 2: Testing (requires approval for next stage)
+  # Stage 2: Testing
   test:
     name: Test Java Code
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: test  # Reference the 'test' environment with an optional approval gate
+      name: test  # Reference the test environment for approval gates
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -49,16 +49,14 @@ jobs:
   deploy-Dev:
     name: Deploy to Dev Environment
     needs: test
-    uses: ./.github/workflows/reusable-deploy.yml  # Reference the reusable workflow
+    uses: SakshiNadagoudra/Reusable-github-workflows/ .github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
     with:
-      environment: dev
+      environment: dev  # Pass the environment name to the reusable workflow
 
-  # Stage 4: Deploy to Production (requires approval)
+  # Stage 4: Deploy to Production
   deploy-Prod:
     name: Deploy to Production
     needs: deploy-Dev
-    environment:
-      name: production  # Reference the 'production' environment with an approval gate
-    uses: ./.github/workflows/reusable-deploy.yml
+    uses: SakshiNadagoudra/Reusable-github-workflows/ .github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
     with:
       environment: production
