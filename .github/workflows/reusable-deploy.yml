@@ -1,62 +1,43 @@
-name: Build and Deploy Java Application
+name: Reusable Deploy Workflow
 
 on:
-  push:
-    branches:
-      - main  # Trigger on pushes to the main branch
-  workflow_dispatch:  # Allow manual triggers
+  workflow_call:
+    inputs:
+      environment:
+        description: "The environment to deploy to"
+        required: true
+        type: string
 
 jobs:
-  # Stage 1: Build
-  build:
-    name: Build Java Code
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
     runs-on: ubuntu-latest
+    environment: 
+      name: ${{ inputs.environment }} # Attach the job to the specified environment for approval gates
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Set up JDK
-        uses: actions/setup-java@v3
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v3
         with:
-          distribution: 'adopt'
-          java-version: '11'
+          name: build-artifacts  # Ensure this matches the artifact name in the main workflow
 
-      - name: Build with Maven
-        run: mvn clean install
+      - name: Deploy Application
+        run: |
+          echo "Deploying to the ${{ inputs.environment }} environment"
+          # Add your deployment logic here (e.g., copying files, running scripts)
 
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: build-artifacts
-          path: target/*.jar
-
-  # Stage 2: Testing
-  test:
-    name: Test Java Code
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: test  # Reference the test environment for approval gates
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Run Tests
-        run: mvn test
-
-  # Stage 3: Deploy to Development
-  deploy-Dev:
-    name: Deploy to Dev Environment
-    needs: test
-    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
-    with:
-      environment: dev  # Pass the environment name to the reusable workflow
-
-  # Stage 4: Deploy to Production
-  deploy-Prod:
-    name: Deploy to Production
-    needs: deploy-Dev
-    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
-    with:
-      environment: production
+      # - name: Notify Manager via GitHub Issue
+      #   uses: actions/github-script@v6
+      #   with:
+      #     script: |
+      #       const { owner, repo } = context.repo;
+      #       await github.rest.issues.create({
+      #         owner,
+      #         repo,
+      #         title: `Approval Required: Deployment to ${{ inputs.environment }} Environment`,
+      #         body: `The workflow is awaiting approval for deployment to **${{ inputs.environment }} Environment**.
+      #         \nPlease review and approve: https://github.com/${owner}/${repo}/actions/runs/${context.runId}`
+      #       });
