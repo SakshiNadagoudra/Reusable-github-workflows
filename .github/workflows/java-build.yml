@@ -9,7 +9,7 @@ on:
 permissions:
   contents: write
   issues: write  # Ensure the GITHUB_TOKEN can create issues
-  
+
 jobs:
   # Stage 1: Build
   build:
@@ -48,6 +48,12 @@ jobs:
 
       - name: Run Tests
         run: mvn test
+    
+       # Create GitHub issue for notification
+      - name: Notify Manager for Approval (Dev)
+        run: |
+          gh issue create --title "Approval Needed for Dev Deployment" --body "The deployment to the Dev environment is pending approval. Please review and approve." --assignee manager-github-username
+
 
   # Stage 3: Deploy to Development
   deploy-Dev:
@@ -57,6 +63,12 @@ jobs:
     with:
       environment: dev  # Pass the environment name to the reusable workflow
 
+    # Create GitHub issue for notification
+    - name: Notify Manager for Approval (Prod)
+      run: |
+        gh issue create --title "Approval Needed for Prod Deployment" --body "The deployment to the Production environment is pending approval. Please review and approve." --assignee manager-github-username
+
+   
   # Stage 4: Deploy to Production
   deploy-Prod:
     name: Deploy to Production
@@ -64,3 +76,5 @@ jobs:
     uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
     with:
       environment: production
+
+  
