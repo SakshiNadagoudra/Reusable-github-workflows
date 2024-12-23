@@ -56,7 +56,6 @@ jobs:
     uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
     with:
       environment: dev  # Pass the environment name to the reusable workflow
-
     # # Create GitHub issue for notification
     # - name: Notify Manager for Approval (Dev)
     #   run: |
@@ -69,7 +68,6 @@ jobs:
     uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
     with:
       environment: production
-
     # # Create GitHub issue for notification
     # - name: Notify Manager for Approval (Prod)
     #   run: |
