@@ -68,7 +68,7 @@ jobs:
     needs: deploy-Dev
     uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
     with:
-      environment: production
+      environment: production  # Pass the environment name to the reusable workflow
 
     steps:
       - name: Notify Manager for Approval (Prod)
