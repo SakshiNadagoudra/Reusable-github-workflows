@@ -6,10 +6,6 @@ on:
       - main  # Trigger on pushes to the main branch
   workflow_dispatch:  # Allow manual triggers
 
-permissions:
-  contents: write
-  issues: write  # Ensure the GITHUB_TOKEN can create issues
-
 jobs:
   # Stage 1: Build
   build:
@@ -53,17 +49,7 @@ jobs:
   deploy-Dev:
     name: Deploy to Dev Environment
     needs: test
-    runs-on: ubuntu-latest
-    environment:
-      name: dev  # This attaches the approval gate for the 'dev' environment
-
-    steps:
-      - name: Notify Manager for Approval (Dev)
-        run: |
-          gh issue create --title "Approval Needed for Dev Deployment" --body "The deployment to the Dev environment is pending approval. Please review and approve." --assignee manager-github-username
-
-    # Reference the reusable workflow for deployment
-    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main
+    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
     with:
       environment: dev  # Pass the environment name to the reusable workflow
 
@@ -71,16 +57,6 @@ jobs:
   deploy-Prod:
     name: Deploy to Production
     needs: deploy-Dev
-    runs-on: ubuntu-latest
-    environment:
-      name: production  # This attaches the approval gate for the 'production' environment
-
-    steps:
-      - name: Notify Manager for Approval (Prod)
-        run: |
-          gh issue create --title "Approval Needed for Prod Deployment" --body "The deployment to the Production environment is pending approval. Please review and approve." --assignee manager-github-username
-
-    # Reference the reusable workflow for deployment
-    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main
+    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
     with:
-      environment: production  # Pass the environment name to the reusable workflow
+      environment: production
