@@ -28,3 +28,15 @@ jobs:
         run: |
           echo "Deploying to the ${{ inputs.environment }} environment"
           # Add your deployment logic here (e.g., copying files, running scripts)
+
+      - name: Notify Manager via GitHub Issue
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Approval Required: Deployment to ${{ job.environment.name }}`,
+              body: `The workflow is awaiting approval for deployment to **${{ job.environment.name }}**.
+              \nPlease review and approve: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`,
+            })
