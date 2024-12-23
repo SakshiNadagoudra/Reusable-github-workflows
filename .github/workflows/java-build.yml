@@ -6,6 +6,10 @@ on:
       - main  # Trigger on pushes to the main branch
   workflow_dispatch:  # Allow manual triggers
 
+permissions:
+  contents: write
+  issues: write  # Ensure the GITHUB_TOKEN can create issues
+  
 jobs:
   # Stage 1: Build
   build:
