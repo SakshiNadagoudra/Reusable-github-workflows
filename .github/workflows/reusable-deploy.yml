@@ -33,10 +33,11 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            github.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `Approval Required: Deployment to ${{ job.environment.name }}`,
-              body: `The workflow is awaiting approval for deployment to **${{ job.environment.name }}**.
-              \nPlease review and approve: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`,
-            })
+            const { owner, repo } = context.repo;
+            await github.rest.issues.create({
+              owner,
+              repo,
+              title: `Approval Required: Deployment to ${{ inputs.environment }} Environment`,
+              body: `The workflow is awaiting approval for deployment to **${{ inputs.environment }} Environment**.
+              \nPlease review and approve: https://github.com/${owner}/${repo}/actions/runs/${context.runId}`
+            });
