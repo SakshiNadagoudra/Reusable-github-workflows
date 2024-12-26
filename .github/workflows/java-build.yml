@@ -42,17 +42,12 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run Tests
+        id: test
         run: |
           echo "Running tests..."
-          echo "This is a dummy test report for the POC." > test-report.txt
+          mvn test > result.log; tail -n 20 result.log  # Capture the last 20 lines of the test results
 
-      - name: Upload Test Report
-        uses: actions/upload-artifact@v3
-        with:
-          name: test-report
-          path: test-report.txt
-
-      - name: Notify Manager with Test Report and Approval Link
+      - name: Notify Manager with Test Results and Approval Link
         uses: actions/github-script@v6
         with:
           script: |
@@ -64,20 +59,30 @@ jobs:
             const artifactUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${runId}/artifacts`;  // Artifact URL for download
 
             const subject = "Test Execution Complete - Approval Needed";
+            const testResults = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: repository,
+              run_id: runId,
+            });
+
+            const testResultOutput = testResults.data.map(artifact => `${artifact.name}: ${artifact.url}`).join('\n');
+
             const message = `
               **Subject:** ${subject}
 
               Hi there,
 
-              Test execution is complete. Please review the test report:
+              Test execution is complete. Here are the latest test results:
 
-              [Download Test Report](${artifactUrl})
+              \`\`\`
+              ${testResultOutput}
+              \`\`\`
 
               Workflow details: ${workflowUrl}
 
-              To approve and proceed to the next environment ${environment} , please visit the following approval link:
+              To approve and proceed to Dev environment, please visit the following approval link:
               [Approve Deployment](${approvalUrl})
-              
+
               Thanks,
               GitHub-BMO
             `;
