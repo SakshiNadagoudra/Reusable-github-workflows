@@ -59,9 +59,9 @@ jobs:
             const repository = context.repo.repo;
             const runId = context.runId;
             const environment = '${{ inputs.environment }}';  // Environment passed from workflow
-            const workflowUrl = `https://github.com/${repository}/actions/runs/${runId}`;
-            const approvalUrl = `https://github.com/${repository}/environments/test/approval`; // Example approval URL
-            const artifactUrl = `https://github.com/${repository}/actions/artifacts/${runId}?name=test-report`;  // Artifact URL for download
+            const workflowUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${runId}`;
+            const approvalUrl = `https://github.com/${context.repo.owner}/${repository}/environments/test/approval`; // Example approval URL
+            const artifactUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${runId}/artifacts`;  // Artifact URL for download
 
             const subject = "Test Execution Complete - Approval Needed";
             const message = `
@@ -75,7 +75,7 @@ jobs:
 
               Workflow details: ${workflowUrl}
 
-              To approve and proceed to the next environment, please visit the following approval link:
+              To approve and proceed to the next environment ${environment} , please visit the following approval link:
               [Approve Deployment](${approvalUrl})
               
               Thanks,
