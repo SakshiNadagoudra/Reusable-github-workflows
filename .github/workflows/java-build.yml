@@ -30,72 +30,50 @@ jobs:
         with:
           name: build-artifacts
           path: target/*.jar
-          
-  # Step 2: Test
+
   test:
     name: Test Java Code
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: test  # Environment for approval
+      name: test  # Reference the test environment for approval gates
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
       - name: Run Tests
         run: |
-          mvn test | tee test-output.log
-        id: test-step
+          echo "Running tests..."
+          echo "This is a dummy test report for the POC." > test-report.txt
 
-      - name: Parse Test Results
-        id: test-results
-        run: |
-          TOTAL=$(grep -oP '<testsuite .+? tests="\K\d+' target/surefire-reports/*.xml | paste -sd+ | bc)
-          FAILED=$(grep -oP '<testsuite .+? failures="\K\d+' target/surefire-reports/*.xml | paste -sd+ | bc)
-          SKIPPED=$(grep -oP '<testsuite .+? skipped="\K\d+' target/surefire-reports/*.xml | paste -sd+ | bc)
-          echo "::set-output name=total::$TOTAL"
-          echo "::set-output name=failed::$FAILED"
-          echo "::set-output name=skipped::$SKIPPED"
+      - name: Upload Test Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: Test-Report
+          path: test-report.txt
 
-      - name: Notify Manager with Test Results
+      - name: Notify Manager with Test Report
         uses: actions/github-script@v6
         with:
           script: |
-            const nodemailer = require('nodemailer');
+            const workflowUrl = `https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            const message = `
+            Test execution is complete. Please review the test report:
 
-            const transporter = nodemailer.createTransport({
-              service: 'gmail', // or 'sendgrid' for SendGrid
-              auth: {
-                user: process.env.EMAIL_USERNAME,
-                pass: process.env.EMAIL_PASSWORD
-              }
-            });
+            [Download Test Report](https://github.com/${{ github.repository }}/suites/${{ github.run_id }}/artifacts)
 
-            const emailContent = `
-            <h1>Approval Needed: Deployment to Test Environment</h1>
-            <p>The following test results are available:</p>
-            <ul>
-              <li><b>Total Tests:</b> ${process.env.TOTAL_TESTS}</li>
-              <li><b>Failed Tests:</b> ${process.env.FAILED_TESTS}</li>
-              <li><b>Skipped Tests:</b> ${process.env.SKIPPED_TESTS}</li>
-            </ul>
-            <p>Click <a href="${process.env.RUN_URL}">here</a> to approve the deployment.</p>
+            Workflow details: ${workflowUrl}
             `;
+            console.log(message);
 
-            await transporter.sendMail({
-              from: process.env.EMAIL_USERNAME,
-              to: 'manager@example.com', // Replace with manager's email
-              subject: 'Approval Needed: Deployment to Test Environment',
-              html: emailContent
+            // Notify using GitHub API (e.g., comment on the commit)
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: message,
             });
 
-          env:
-            TOTAL_TESTS: ${{ steps.test-results.outputs.total }}
-            FAILED_TESTS: ${{ steps.test-results.outputs.failed }}
-            SKIPPED_TESTS: ${{ steps.test-results.outputs.skipped }}
-            RUN_URL: ${{ github.event.workflow_run.html_url }}
-            EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
-            EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
 
 
   # Stage 3: Deploy to Development
