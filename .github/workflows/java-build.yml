@@ -40,6 +40,7 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+
       - name: Run Tests
         run: |
           echo "Running tests..."
@@ -55,27 +56,27 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            // The github and context variables are available automatically
-            
-            // Retrieve GitHub context
             const repository = context.repo.repo;
             const runId = context.runId;
             const environment = '${{ inputs.environment }}';  // Environment passed from workflow
             const workflowUrl = `https://github.com/${repository}/actions/runs/${runId}`;
             const approvalUrl = `https://github.com/${repository}/environments/test/approval`; // Example approval URL
-            const artifactUrl = `https://github.com/${repository}/suites/${runId}/artifacts`;  // Artifact URL for download
+            const artifactUrl = `https://github.com/${repository}/actions/artifacts/${runId}?name=test-report`;  // Artifact URL for download
 
+            const subject = "Test Execution Complete - Approval Needed";
             const message = `
+              **Subject:** ${subject}
+
               Hi there,
 
               Test execution is complete. Please review the test report:
 
-              [Download Test Report](https://github.com/${repository}/actions/artifacts/${runId}?name=test-report)
+              [Download Test Report](${artifactUrl})
 
               Workflow details: ${workflowUrl}
 
               To approve and proceed to the next environment, please visit the following approval link:
-              [Approve Deployment](https://github.com/${repository}/environments/${environment}/approval)
+              [Approve Deployment](${approvalUrl})
               
               Thanks,
               GitHub-BMO
