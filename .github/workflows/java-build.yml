@@ -55,7 +55,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const { github, context } = require('@actions/github');
+            // The github and context variables are available automatically
             
             // Retrieve GitHub context
             const repository = context.repo.repo;
@@ -90,8 +90,6 @@ jobs:
               commit_sha: context.sha,
               body: message,
             });
-
-
 
 
   # Stage 3: Deploy to Development
