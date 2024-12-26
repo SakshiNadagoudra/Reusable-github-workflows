@@ -55,21 +55,27 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const workflowUrl = `https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
-            const approvalUrl = `https://github.com/${{ github.repository }}/environments/test/approval`;  # This URL could be used for manual approvals in GitHub environments
-            const artifactUrl = `https://github.com/${{ github.repository }}/suites/${{ github.run_id }}/artifacts`;  // Artifact URL for download
+            const { github, context } = require('@actions/github');
+            
+            // Retrieve GitHub context
+            const repository = context.repo.repo;
+            const runId = context.runId;
+            const environment = '${{ inputs.environment }}';  // Environment passed from workflow
+            const workflowUrl = `https://github.com/${repository}/actions/runs/${runId}`;
+            const approvalUrl = `https://github.com/${repository}/environments/test/approval`; // Example approval URL
+            const artifactUrl = `https://github.com/${repository}/suites/${runId}/artifacts`;  // Artifact URL for download
 
             const message = `
               Hi there,
 
               Test execution is complete. Please review the test report:
 
-              [Download Test Report](https://github.com/${{ github.repository }}/actions/artifacts/${{ github.run_id }}?name=test-report)
+              [Download Test Report](https://github.com/${repository}/actions/artifacts/${runId}?name=test-report)
 
               Workflow details: ${workflowUrl}
 
               To approve and proceed to the next environment, please visit the following approval link:
-              [Approve Deployment](https://github.com/${{ github.repository }}/environments/${{ inputs.environment }}/approval)
+              [Approve Deployment](https://github.com/${repository}/environments/${environment}/approval)
               
               Thanks,
               GitHub-BMO
