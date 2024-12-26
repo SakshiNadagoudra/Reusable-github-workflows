@@ -40,7 +40,6 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
-
       - name: Run Tests
         run: |
           echo "Running tests..."
@@ -49,21 +48,33 @@ jobs:
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         with:
-          name: Test-Report
+          name: test-report
           path: test-report.txt
 
-      - name: Notify Manager with Test Report
+      - name: Notify Manager with Test Report and Approval Link
         uses: actions/github-script@v6
         with:
           script: |
             const workflowUrl = `https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            const approvalUrl = `https://github.com/${{ github.repository }}/environments/test/approval`;  # This URL could be used for manual approvals in GitHub environments
+            const artifactUrl = `https://github.com/${{ github.repository }}/suites/${{ github.run_id }}/artifacts`;  // Artifact URL for download
+
             const message = `
-            Test execution is complete. Please review the test report:
+              Hi there,
 
-            [Download Test Report](https://github.com/${{ github.repository }}/suites/${{ github.run_id }}/artifacts)
+              Test execution is complete. Please review the test report:
 
-            Workflow details: ${workflowUrl}
+              [Download Test Report](https://github.com/${{ github.repository }}/actions/artifacts/${{ github.run_id }}?name=test-report)
+
+              Workflow details: ${workflowUrl}
+
+              To approve and proceed to the next environment, please visit the following approval link:
+              [Approve Deployment](https://github.com/${{ github.repository }}/environments/${{ inputs.environment }}/approval)
+              
+              Thanks,
+              GitHub-BMO
             `;
+
             console.log(message);
 
             // Notify using GitHub API (e.g., comment on the commit)
@@ -73,6 +84,7 @@ jobs:
               commit_sha: context.sha,
               body: message,
             });
+
 
 
 
