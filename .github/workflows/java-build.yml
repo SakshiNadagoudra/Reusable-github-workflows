@@ -37,7 +37,7 @@ jobs:
   # Stage 3: Deploy to Development
   deploy-dev:
     name: Deploy to Dev Environment
-    needs: test
+    needs: build
     uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@feature-branch  # Reference the reusable workflow
     with:
       environment: dev  # Pass the environment name to the reusable workflow
