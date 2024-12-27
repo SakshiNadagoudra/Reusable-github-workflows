@@ -6,63 +6,64 @@ on:
       environment:
         required: true
         type: string
+
 jobs:
-    test:
-        name: Test in ${{ inputs.environment }}
-        runs-on: ubuntu-latest
-        environment:
-        name: test  # Reference the test environment for approval gates
-        steps:
-        - name: Checkout Code
-            uses: actions/checkout@v3
+  test:
+    name: Test in ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment:
+      name: test  # Reference the test environment for approval gates
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-        - name: Run Tests
-            run: |
-            echo "Running tests in ${{ inputs.environment }}"
-            echo "This is a dummy test report for the POC." > test-report.txt
+      - name: Run Tests
+        run: |
+          echo "Running tests in ${{ inputs.environment }}"
+          echo "This is a dummy test report for the POC." > test-report.txt
 
-        - name: Upload Test Report
-            uses: actions/upload-artifact@v3
-            with:
-            name: test-report
-            path: test-report.txt
+      - name: Upload Test Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-report
+          path: test-report.txt
 
-        - name: Notify Manager with Test Report and Approval Link
-            uses: actions/github-script@v6
-            with:
-            script: |
-                const repository = context.repo.repo;
-                const runId = context.runId;
-                const environment = '${{ inputs.environment }}';  // Environment passed from workflow
-                const workflowUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${runId}`;
-                const approvalUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${runId}`;
-                const artifactUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${runId}/artifacts`;  // Artifact URL for download
+      - name: Notify Manager with Test Report and Approval Link
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const repository = context.repo.repo;
+            const runId = context.runId;
+            const environment = '${{ inputs.environment }}';  // Environment passed from workflow
+            const workflowUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${runId}`;
+            const approvalUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${runId}`;
+            const artifactUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${runId}/artifacts`;  // Artifact URL for download
 
-                const subject = "Test Execution Complete - Approval Needed";
-                const message = `
-                **Subject:** ${subject}
+            const subject = "Test Execution Complete - Approval Needed";
+            const message = `
+            **Subject:** ${subject}
 
-                Hi there,
+            Hi there,
 
-                Test execution is complete. Please review the test report:
+            Test execution is complete. Please review the test report:
 
-                [Download Test Report](${artifactUrl})
+            [Download Test Report](${artifactUrl})
 
-                Workflow details: ${workflowUrl}
+            Workflow details: ${workflowUrl}
 
-                To approve and proceed to the next environment ${environment} , please visit the following approval link:
-                [Approve Deployment](${approvalUrl})
-                
-                Thanks,
-                GitHub-BMO
-                `;
+            To approve and proceed to the next environment ${environment}, please visit the following approval link:
+            [Approve Deployment](${approvalUrl})
+            
+            Thanks,
+            GitHub-BMO
+            `;
 
-                console.log(message);
+            console.log(message);
 
-                // Notify using GitHub API (e.g., comment on the commit)
-                await github.rest.repos.createCommitComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                commit_sha: context.sha,
-                body: message,
-                });
+            // Notify using GitHub API (e.g., comment on the commit)
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: message,
+            });
