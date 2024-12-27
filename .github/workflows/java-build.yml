@@ -1,9 +1,10 @@
 name: Build and Deploy Java Application
 
 on:
+
   pull_request:
     branches:
-      - release  
+      - release-branch
   workflow_dispatch:  # Allow manual triggers
 
 jobs:
