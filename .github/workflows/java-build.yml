@@ -1,9 +1,9 @@
 name: Build and Deploy Java Application
 
 on:
-  push:
+  pull_request:
     branches:
-      - main  # Trigger on pushes to the main branch
+      - release  
   workflow_dispatch:  # Allow manual triggers
 
 jobs:
@@ -60,7 +60,7 @@ jobs:
             const runId = context.runId;
             const environment = '${{ inputs.environment }}';  // Environment passed from workflow
             const workflowUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${runId}`;
-            const approvalUrl = `https://github.com/${context.repo.owner}/${repository}/environments/test/approval`; // Example approval URL
+            const approvalUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${runId}`;
             const artifactUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${runId}/artifacts`;  // Artifact URL for download
 
             const subject = "Test Execution Complete - Approval Needed";
