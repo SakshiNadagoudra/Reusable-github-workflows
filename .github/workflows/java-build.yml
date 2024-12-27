@@ -1,7 +1,9 @@
 name: Build and Deploy Java Application
 
 on:
-
+  push:
+    branches:
+      - feature-branch
   pull_request:
     branches:
       - release-branch
