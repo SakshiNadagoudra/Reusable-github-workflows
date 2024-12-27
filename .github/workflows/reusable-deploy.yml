@@ -35,15 +35,15 @@ jobs:
           # Add your deployment logic here (e.g., copying files, running scripts)
 
 
-      - name: Notify Manager via GitHub Issue
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const { owner, repo } = context.repo;
-            await github.rest.issues.create({
-              owner,
-              repo,
-              title: `Approval Required: Deployment to ${{ inputs.environment }} Environment`,
-              body: `The workflow is awaiting approval for deployment to **${{ inputs.environment }} Environment**.
-              \nPlease review and approve: https://github.com/${owner}/${repo}/actions/runs/${context.runId}`
-            });
+      # - name: Notify Manager via GitHub Issue
+      #   uses: actions/github-script@v6
+      #   with:
+      #     script: |
+      #       const { owner, repo } = context.repo;
+      #       await github.rest.issues.create({
+      #         owner,
+      #         repo,
+      #         title: `Approval Required: Deployment to ${{ inputs.environment }} Environment`,
+      #         body: `The workflow is awaiting approval for deployment to **${{ inputs.environment }} Environment**.
+      #         \nPlease review and approve: https://github.com/${owner}/${repo}/actions/runs/${context.runId}`
+      #       });
