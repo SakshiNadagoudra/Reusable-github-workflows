@@ -12,8 +12,8 @@ jobs:
   deploy:
     name: Deploy to ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    # environment: 
-    #   name: ${{ inputs.environment }} # Attach the job to the specified environment for approval gates
+    environment: 
+      name: ${{ inputs.environment }} # Attach the job to the specified environment for approval gates
 
     steps:
       # Conditional step: Checkout code only if the environment is 'dev'
