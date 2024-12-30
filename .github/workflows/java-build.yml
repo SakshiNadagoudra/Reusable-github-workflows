@@ -2,7 +2,7 @@ name: Build and Deploy Java Application
 on:
   push:
     branches:
-      - release-branch  # Replace with your target branch
+      - feature-branch  # Replace with your target branch
     workflow_dispatch:
 
 jobs:
