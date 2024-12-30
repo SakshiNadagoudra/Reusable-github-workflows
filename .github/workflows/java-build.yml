@@ -1,13 +1,17 @@
 name: Build and Deploy Java Application
-
 on:
-
-  pull_request:
+  push:
     branches:
-      - release-branch
-  workflow_dispatch:  # Allow manual triggers
+      - release-branch  # Replace with your target branch
 
 jobs:
+  run-on-merge:
+    runs-on: ubuntu-latest
+    if: startsWith(github.event.head_commit.message, 'Merge pull request')  # Check if the commit is a PR merge
+    steps:
+      - name: Run on PR merge
+        run: echo "This workflow runs only when a pull request is merged."
+
   # Stage 1: Build
   build:
     name: Build Java Code
