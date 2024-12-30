@@ -6,10 +6,21 @@ on:
     workflow_dispatch:
 
 jobs:
+  
+  run-on-merge:
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, 'Merge pull request')  # Check if the commit is a PR merge
+    steps:
+      - name: Log Commit Message
+        run: echo "Commit Message:" ${{ github.event.head_commit.message }}
+      - name: Run on PR merge
+        run: echo "This workflow runs only when a pull request is merged."
+
+  # Stage 1: Build
   build:
     name: Build Java Code
     runs-on: ubuntu-latest
-    needs: run-on-merge
+    # needs: run-on-merge
     steps: 
       - name: Checkout Code
         uses: actions/checkout@v3
