@@ -19,8 +19,8 @@ jobs:
   build:
     name: Build Java Code
     runs-on: ubuntu-latest
-
-    steps:
+    needs: run-on-merge
+    steps: 
       - name: Checkout Code
         uses: actions/checkout@v3
 
