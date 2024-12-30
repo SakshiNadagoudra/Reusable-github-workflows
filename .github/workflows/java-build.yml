@@ -6,8 +6,6 @@ on:
     workflow_dispatch:
 
 jobs:
-
-  # Stage 1: Build
   build:
     name: Build Java Code
     runs-on: ubuntu-latest
