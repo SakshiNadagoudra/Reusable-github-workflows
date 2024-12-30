@@ -55,7 +55,7 @@ jobs:
 
   # Stage 3: Deploy to Development
   deploy-sit:
-    name: Deploy to Uat Environment
+    name: Deploy to Sit Environment
     needs: test-sit
     uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
     with:
