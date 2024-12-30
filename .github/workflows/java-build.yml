@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - release-branch  # Replace with your target branch
+    workflow_dispatch:
 
 jobs:
   
@@ -43,14 +44,14 @@ jobs:
   deploy-dev:
     name: Deploy to Dev Environment
     needs: build
-    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@feature-branch  # Reference the reusable workflow
+    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main # Reference the reusable workflow
     with:
       environment: dev  # Pass the environment name to the reusable workflow
   
   test-uat:
     name: Test in Uat
     needs: deploy-dev
-    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-test.yml@feature-branch
+    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-test.yml@main
     with:
       environment: uat
 
@@ -58,14 +59,14 @@ jobs:
   deploy-uat:
     name: Deploy to Uat Environment
     needs: test-uat
-    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@feature-branch  # Reference the reusable workflow
+    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
     with:
       environment: uat
   
   test-prod:
     name: Test in Prod
     needs: deploy-uat
-    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-test.yml@feature-branch
+    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-test.yml@main
     with:
       environment: prod
 
@@ -73,6 +74,6 @@ jobs:
   deploy-Prod:
     name: Deploy to Production
     needs: test-prod
-    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@feature-branch  # Reference the reusable workflow
+    uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
     with:
       environment: production
