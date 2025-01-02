@@ -18,13 +18,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Define environments in sequence
-      - name: Set environment list
-        id: envs
-        run: echo "envs=dev,sit,prod" >> $GITHUB_ENV
+      - name: Check out repository
+        uses: actions/checkout@v3
 
-      # Iterate over environments and call reusable workflows
-      - name: Set up environment
+      # Step 2: Export GH_TOKEN for authentication
+      - name: Set up GitHub CLI authentication
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "GH_TOKEN set for GitHub CLI"
+
+      # Step 3: Run the loop to call reusable workflows
+      - name: Trigger reusable workflows
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -35,7 +39,6 @@ jobs:
             echo "Calling Workflow 2 for $env"
             gh workflow run reusable-deploy.yml --ref main -F env=$env
           done
-
 
   # # Stage 1: Build
   # build:
