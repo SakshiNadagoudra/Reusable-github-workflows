@@ -49,7 +49,6 @@ jobs:
 
             if [ "$env" != "prod" ]; then
               echo "Waiting for manual approval to proceed to the next environment..."
-              gh workflow run approval-step.yml --ref main -F environment=$env
             fi
           done
 
