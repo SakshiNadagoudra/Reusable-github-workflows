@@ -26,13 +26,14 @@ jobs:
       # Iterate over environments and call reusable workflows
       - name: Loop through environments
         run: |
-          for env in $(echo ${{ env.envs }} | tr ',' ' '); do
+          for env in $(echo dev,sit,prod | tr ',' ' '); do
             echo "Calling Workflow 1 for $env"
-            gh workflow run reusable-test.yml --ref main --inputs env=$env
+            gh workflow run reusable-test.yml --ref main -F env=$env
             
             echo "Calling Workflow 2 for $env"
-            gh workflow run reusable-deploy.yml --ref main --inputs env=$env
+            gh workflow run reusable-deploy.yml --ref main -F env=$env
           done
+
 
   # # Stage 1: Build
   # build:
