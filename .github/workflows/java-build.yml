@@ -49,21 +49,17 @@ jobs:
               echo "====================================="
               echo "Waiting for manual approval for $env"
               echo "====================================="
-              # GitHub will automatically pause here and wait for manual approval
-              # based on protection rules set for the 'sit' and 'prod' environments
+              # This is where GitHub will pause the workflow for manual approval.
+              # Ensure your environment protection rules are correctly configured to require approval
+              # for 'sit' and 'prod' environments.
 
-              # Monitor the approval status
-              APPROVAL_STATUS="pending"
-              while [ "$APPROVAL_STATUS" != "approved" ]; do
-                echo "Checking approval status for $env..."
-                # Check if approval has been given
-                APPROVAL_STATUS=$(gh api /repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/approvals | jq -r '.[0].status')
-                if [ "$APPROVAL_STATUS" == "rejected" ]; then
-                  echo "Approval for $env was rejected. Stopping workflow."
-                  exit 1
-                fi
-                sleep 10  # Check every 10 seconds
-              done
+              # This line assumes your workflow will pause until approval is granted
+              gh run watch ${{ github.run_id }} --status completed
+              approval_status=$(gh api /repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/approvals | jq -r '.[0].status')
+              if [ "$approval_status" == "rejected" ]; then
+                echo "Approval for $env was rejected. Stopping workflow."
+                exit 1
+              fi
               echo "Approval granted for $env."
             fi
 
@@ -81,7 +77,6 @@ jobs:
               # Notification logic goes here (Slack, email, etc.)
             fi
           done
-
 
 
 
