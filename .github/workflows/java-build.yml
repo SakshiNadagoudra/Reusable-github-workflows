@@ -9,15 +9,19 @@ jobs:
   deploy-and-test:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout the main branch to access reusable workflows
+        uses: actions/checkout@v3
+        with:
+          ref: main
       # Step 1: Deploy to Dev immediately when push occurs
       - name: Deploy to Dev
-        uses: ./.github/workflows/reusable-deploy.yml@main
+        uses: ./.github/workflows/reusable-deploy.yml
         with:
           environment: dev
 
       # Step 2: Test Dev Environment
       - name: Test Dev Environment
-        uses: ./.github/workflows/reusable-test.yml@main
+        uses: ./.github/workflows/reusable-test.yml
         with:
           environment: dev
 
@@ -25,7 +29,6 @@ jobs:
       - name: Notify for SIT Approval
         run: |
           echo "Dev deployment completed and tested. Please approve or reject deployment to SIT."
-
       - name: Wait for SIT Approval
         run: |
           echo "Waiting for approval to proceed to SIT."
@@ -35,14 +38,14 @@ jobs:
       # Step 4: Deploy to SIT (only if Dev was approved)
       - name: Deploy to SIT
         if: ${{ github.event.inputs.approval == 'approved' }}
-        uses: ./.github/workflows/reusable-deploy.yml@main
+        uses: ./.github/workflows/reusable-deploy.yml
         with:
           environment: sit
 
       # Step 5: Test SIT Environment
       - name: Test SIT Environment
         if: ${{ github.event.inputs.approval == 'approved' }}
-        uses: ./.github/workflows/reusable-test.yml@main
+        uses: ./.github/workflows/reusable-test.yml
         with:
           environment: sit
 
@@ -51,22 +54,22 @@ jobs:
         run: |
           echo "SIT deployment completed and tested. Please approve or reject deployment to UAT."
 
-      # Step 7: Wait for UAT Approval to UAT
-      - name: Wait for UAT Approval
+      # Step 7: Wait for SIT Approval to UAT
+      - name: Wait for SIT Approval
         run: |
           echo "Waiting for approval to proceed to UAT."
 
       # Step 8: Deploy to UAT (only if SIT was approved)
       - name: Deploy to UAT
         if: ${{ github.event.inputs.approval == 'approved' }}
-        uses: ./.github/workflows/reusable-deploy.yml@main
+        uses: ./.github/workflows/reusable-deploy.yml
         with:
           environment: uat
 
       # Step 9: Test UAT Environment
       - name: Test UAT Environment
         if: ${{ github.event.inputs.approval == 'approved' }}
-        uses: ./.github/workflows/reusable-test.yml@main
+        uses: ./.github/workflows/reusable-test.yml
         with:
           environment: uat
 
@@ -83,14 +86,14 @@ jobs:
       # Step 12: Deploy to Prod (only if UAT was approved)
       - name: Deploy to Prod
         if: ${{ github.event.inputs.approval == 'approved' }}
-        uses: ./.github/workflows/reusable-deploy.yml@main
+        uses: ./.github/workflows/reusable-deploy.yml
         with:
           environment: prod
 
       # Step 13: Test Prod Environment
       - name: Test Prod Environment
         if: ${{ github.event.inputs.approval == 'approved' }}
-        uses: ./.github/workflows/reusable-test.yml@main
+        uses: ./.github/workflows/reusable-test.yml
         with:
           environment: prod
 
