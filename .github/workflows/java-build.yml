@@ -34,27 +34,24 @@ jobs:
         run: |
           # Define environments
           ENVIRONMENTS=("dev" "sit" "prod")
-          APPROVAL_FLAG="false"  # To track approval status
-
-          # Function to send notification for approval
-          send_approval_notification() {
-            echo "Sending approval notification to manager for $1 environment..."
-            # Send the notification to the manager. You can use Slack, Email, or GitHub comments.
-            # Example for Slack (adjust based on your setup):
-            # curl -X POST -H 'Content-type: application/json' --data '{"text":"Please approve deployment for '$1'"}' https://hooks.slack.com/services/TOKEN
-          }
 
           # Loop through each environment
           for env in "${ENVIRONMENTS[@]}"; do
-            # Step 1: Deploy to the current environment
+            # Step 1: Trigger Deploy workflow for the current environment
             echo "====================================="
             echo "Triggering Deploy workflow for $env"
             echo "====================================="
             gh workflow run reusable-deploy.yml --ref main -F environment=$env
             echo "Waiting for deploy workflow ($env) to complete..."
-            sleep 30  # Adjust this to the time your deploy workflow needs to complete
+            sleep 30  # Adjust the time to allow the deploy workflow to finish
 
-            # Step 2: Test the current environment
+            # Step 2: Environment Protection Rules: Wait for approval
+            if [ "$env" != "prod" ]; then
+              echo "Waiting for manual approval before proceeding to the next environment..."
+              # GitHub automatically pauses the workflow based on the protection rules for 'sit' and 'prod' environments
+            fi
+
+            # Step 3: Trigger Test workflow for the current environment
             echo "====================================="
             echo "Triggering Test workflow for $env"
             echo "====================================="
@@ -62,12 +59,10 @@ jobs:
             echo "Waiting for test workflow ($env) to complete..."
             sleep 30  # Adjust this to the time your test workflow needs to complete
 
-            # Step 3: If successful, notify the manager for approval
+            # Step 4: Send notification for manager approval (if needed)
             if [ "$env" != "prod" ]; then
-              send_approval_notification $env
-              echo "Waiting for manager approval before proceeding to the next environment..."
-              # Here we assume you are using GitHub's environment protection rule to handle approval for the next environment.
-              # After the approval process, continue the workflow. GitHub automatically handles this pausing based on protection rules.
+              echo "Sending approval notification to manager for $env environment..."
+              # Notification logic goes here, such as sending a Slack or email message to the manager.
             fi
           done
 
