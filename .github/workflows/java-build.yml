@@ -34,11 +34,12 @@ jobs:
         run: |
           for env in $(echo dev,sit,prod | tr ',' ' '); do
             echo "Calling Workflow 1 for $env"
-            gh workflow run reusable-test.yml --ref main -F env=$env
+            gh workflow run reusable-test.yml --ref main -F environment=$env
             
             echo "Calling Workflow 2 for $env"
-            gh workflow run reusable-deploy.yml --ref main -F env=$env
+            gh workflow run reusable-deploy.yml --ref main -F environment=$env
           done
+
 
   # # Stage 1: Build
   # build:
