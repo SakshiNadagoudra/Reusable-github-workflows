@@ -24,7 +24,9 @@ jobs:
         run: echo "envs=dev,sit,prod" >> $GITHUB_ENV
 
       # Iterate over environments and call reusable workflows
-      - name: Loop through environments
+      - name: Set up environment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           for env in $(echo dev,sit,prod | tr ',' ' '); do
             echo "Calling Workflow 1 for $env"
