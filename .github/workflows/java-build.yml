@@ -1,103 +1,68 @@
 name: Build and Deploy Java Application
-
+name: Build and Deploy Java Application
 on:
   push:
     branches:
-      - feature-branch # Trigger the pipeline when there is a push to the main branch (change to your branch if necessary)
+      - feature-branch  # Replace with your target branch
+    workflow_dispatch:
 
 jobs:
-  deploy-and-test:
+  
+  run-on-merge:
     runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, 'Merge pull request')  # Check if the commit is a PR merge
     steps:
-      # Step 1: Checkout the repository to access the workflows
-      - name: Checkout repository
+      - name: Run on PR merge
+        run: echo "This workflow runs only when a pull request is merged."
+
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
         uses: actions/checkout@v3
-        with:
-          ref: main  # Checkout the main branch explicitly
 
-      # Step 2: Deploy to Dev immediately when push occurs
-      - name: Deploy to Dev
-        uses: ./.github/workflows/reusable-deploy.yml
-        with:
-          environment: dev
-
-      # Step 3: Test Dev Environment
-      - name: Test Dev Environment
-        uses: ./.github/workflows/reusable-test.yml
-        with:
-          environment: dev
-
-      # Step 4: Notify for SIT Approval
-      - name: Notify for SIT Approval
+      - name: Setup GitHub CLI
         run: |
-          echo "Dev deployment completed and tested. Please approve or reject deployment to SIT."
-
-      # Step 5: Wait for SIT Approval
-      - name: Wait for SIT Approval
+          echo "Setting up GitHub CLI"
+          sudo apt-get update
+          sudo apt-get install -y gh
+      - name: Deploy and Test Sequentially with Approval
+        env:
+          GH_TOKEN: ${{ github.token }}  # Set the GH_TOKEN environment variable
         run: |
-          echo "Waiting for approval to proceed to SIT."
-
-      # Step 6: Deploy to SIT (only if Dev was approved)
-      - name: Deploy to SIT
-        if: ${{ github.event.inputs.approval == 'approved' }}
-        uses: ./.github/workflows/reusable-deploy.yml
-        with:
-          environment: sit
-
-      # Step 7: Test SIT Environment
-      - name: Test SIT Environment
-        if: ${{ github.event.inputs.approval == 'approved' }}
-        uses: ./.github/workflows/reusable-test.yml
-        with:
-          environment: sit
-
-      # Step 8: Notify for UAT Approval
-      - name: Notify for UAT Approval
-        run: |
-          echo "SIT deployment completed and tested. Please approve or reject deployment to UAT."
-
-      # Step 9: Wait for SIT Approval to UAT
-      - name: Wait for SIT Approval
-        run: |
-          echo "Waiting for approval to proceed to UAT."
-
-      # Step 10: Deploy to UAT (only if SIT was approved)
-      - name: Deploy to UAT
-        if: ${{ github.event.inputs.approval == 'approved' }}
-        uses: ./.github/workflows/reusable-deploy.yml
-        with:
-          environment: uat
-
-      # Step 11: Test UAT Environment
-      - name: Test UAT Environment
-        if: ${{ github.event.inputs.approval == 'approved' }}
-        uses: ./.github/workflows/reusable-test.yml
-        with:
-          environment: uat
-
-      # Step 12: Notify for Prod Approval
-      - name: Notify for Prod Approval
-        run: |
-          echo "UAT deployment completed and tested. Please approve or reject deployment to Prod."
-
-      # Step 13: Wait for UAT Approval to Prod
-      - name: Wait for UAT Approval
-        run: |
-          echo "Waiting for approval to proceed to Prod."
-
-      # Step 14: Deploy to Prod (only if UAT was approved)
-      - name: Deploy to Prod
-        if: ${{ github.event.inputs.approval == 'approved' }}
-        uses: ./.github/workflows/reusable-deploy.yml
-        with:
-          environment: prod
-
-      # Step 15: Test Prod Environment
-      - name: Test Prod Environment
-        if: ${{ github.event.inputs.approval == 'approved' }}
-        uses: ./.github/workflows/reusable-test.yml
-        with:
-          environment: prod
+          # Define environments
+          ENVIRONMENTS=("dev" "sit" "prod")
+          # Loop through each environment
+          for env in "${ENVIRONMENTS[@]}"; do
+            # Step 1: Trigger Deploy workflow for the current environment
+            echo "====================================="
+            echo "Triggering Deploy workflow for $env"
+            echo "====================================="
+            gh workflow run reusable-deploy.yml --ref main -F environment=$env
+            echo "Waiting for deploy workflow ($env) to complete..."
+            # Step 2: Wait for approval if environment is not 'dev'
+            if [ "$env" != "dev" ]; then
+              echo "====================================="
+              echo "Waiting for manual approval for $env"
+              echo "====================================="
+              # GitHub will automatically pause here and wait for manual approval
+              # based on protection rules set for the 'sit' and 'prod' environments
+            fi
+            # Step 3: Trigger Test workflow for the current environment after approval
+            echo "====================================="
+            echo "Triggering Test workflow for $env"
+            echo "====================================="
+            gh workflow run reusable-test.yml --ref main -F environment=$env
+            echo "Waiting for test workflow ($env) to complete..."
+            sleep 30  # Adjust this to the time your test workflow needs to complete
+            # Step 4: Send notification for manager approval (optional)
+            if [ "$env" != "prod" ]; then
+              echo "Sending approval notification to manager for $env environment..."
+              # Notification logic goes here (Slack, email, etc.)
+            fi
+          done
 
 
 
