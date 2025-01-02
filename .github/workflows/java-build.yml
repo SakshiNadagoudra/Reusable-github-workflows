@@ -17,27 +17,37 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
-
-      # Step 2: Export GH_TOKEN for authentication
-      - name: Set up GitHub CLI authentication
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: echo "GH_TOKEN set for GitHub CLI"
-
-      # Step 3: Run the loop to call reusable workflows
-      - name: Trigger reusable workflows
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup GitHub CLI
         run: |
-          for env in $(echo dev,sit,prod | tr ',' ' '); do
-            echo "Calling Workflow 1 for $env"
+          echo "Setting up GitHub CLI"
+          sudo apt-get update
+          sudo apt-get install -y gh
+
+      - name: Deploy Sequentially to All Environments
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Required for GitHub CLI
+        run: |
+          for env in dev sit prod; do
+            echo "====================================="
+            echo "Starting deployment for $env"
+            echo "====================================="
+
+            echo "Calling Reusable Workflow 1 for $env"
             gh workflow run reusable-test.yml --ref main -F environment=$env
-            
-            echo "Calling Workflow 2 for $env"
+            echo "Waiting for reusable workflow 1 to complete..."
+            sleep 30  # Add delay if necessary to avoid immediate execution
+
+            echo "Calling Reusable Workflow 2 for $env"
             gh workflow run reusable-deploy.yml --ref main -F environment=$env
+            echo "Waiting for reusable workflow 2 to complete..."
+            sleep 30  # Adjust delay if needed
+
+            if [ "$env" != "prod" ]; then
+              echo "Waiting for manual approval to proceed to the next environment..."
+              gh workflow run approval-step.yml --ref main -F environment=$env
+            fi
           done
 
 
