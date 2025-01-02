@@ -45,13 +45,15 @@ jobs:
             echo "Waiting for deploy workflow ($env) to complete..."
             sleep 30  # Adjust the time to allow the deploy workflow to finish
 
-            # Step 2: Environment Protection Rules: Wait for approval
-            if [ "$env" != "prod" ]; then
-              echo "Waiting for manual approval before proceeding to the next environment..."
-              # GitHub automatically pauses the workflow based on the protection rules for 'sit' and 'prod' environments
+            # Step 2: Wait for approval before testing if environment is not dev
+            if [ "$env" != "dev" ]; then
+              echo "====================================="
+              echo "Waiting for manual approval before proceeding to test workflow for $env"
+              echo "====================================="
+              # GitHub automatically waits for approval at this point if environment protection is configured for 'sit' and 'prod'
             fi
 
-            # Step 3: Trigger Test workflow for the current environment
+            # Step 3: Trigger Test workflow for the current environment after approval
             echo "====================================="
             echo "Triggering Test workflow for $env"
             echo "====================================="
@@ -59,10 +61,10 @@ jobs:
             echo "Waiting for test workflow ($env) to complete..."
             sleep 30  # Adjust this to the time your test workflow needs to complete
 
-            # Step 4: Send notification for manager approval (if needed)
+            # Step 4: Send notification for manager approval (optional)
             if [ "$env" != "prod" ]; then
               echo "Sending approval notification to manager for $env environment..."
-              # Notification logic goes here, such as sending a Slack or email message to the manager.
+              # Notification logic goes here (Slack, email, etc.)
             fi
           done
 
