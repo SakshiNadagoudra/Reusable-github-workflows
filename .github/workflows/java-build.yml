@@ -43,14 +43,14 @@ jobs:
             echo "====================================="
             gh workflow run reusable-deploy.yml --ref main -F environment=$env
             echo "Waiting for deploy workflow ($env) to complete..."
-            sleep 30  # Adjust the time to allow the deploy workflow to finish
 
-            # Step 2: Wait for approval before testing if environment is not dev
+            # Step 2: Wait for approval if environment is not 'dev'
             if [ "$env" != "dev" ]; then
               echo "====================================="
-              echo "Waiting for manual approval before proceeding to test workflow for $env"
+              echo "Waiting for manual approval for $env"
               echo "====================================="
-              # GitHub automatically waits for approval at this point if environment protection is configured for 'sit' and 'prod'
+              # GitHub will automatically pause here and wait for manual approval
+              # based on protection rules set for the 'sit' and 'prod' environments
             fi
 
             # Step 3: Trigger Test workflow for the current environment after approval
@@ -67,6 +67,7 @@ jobs:
               # Notification logic goes here (Slack, email, etc.)
             fi
           done
+
 
 
   # # Stage 1: Build
