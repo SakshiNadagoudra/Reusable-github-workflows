@@ -28,6 +28,7 @@ jobs:
           echo "Setting up GitHub CLI"
           sudo apt-get update
           sudo apt-get install -y gh
+
       - name: Deploy and Test Sequentially with Approval
         env:
           GH_TOKEN: ${{ github.token }}  # Set the GH_TOKEN environment variable
@@ -42,6 +43,7 @@ jobs:
             echo "====================================="
             gh workflow run reusable-deploy.yml --ref main -F environment=$env
             echo "Waiting for deploy workflow ($env) to complete..."
+
             # Step 2: Wait for approval if environment is not 'dev'
             if [ "$env" != "dev" ]; then
               echo "====================================="
@@ -49,7 +51,22 @@ jobs:
               echo "====================================="
               # GitHub will automatically pause here and wait for manual approval
               # based on protection rules set for the 'sit' and 'prod' environments
+
+              # Monitor the approval status
+              APPROVAL_STATUS="pending"
+              while [ "$APPROVAL_STATUS" != "approved" ]; do
+                echo "Checking approval status for $env..."
+                # Check if approval has been given
+                APPROVAL_STATUS=$(gh api /repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/approvals | jq -r '.[0].status')
+                if [ "$APPROVAL_STATUS" == "rejected" ]; then
+                  echo "Approval for $env was rejected. Stopping workflow."
+                  exit 1
+                fi
+                sleep 10  # Check every 10 seconds
+              done
+              echo "Approval granted for $env."
             fi
+
             # Step 3: Trigger Test workflow for the current environment after approval
             echo "====================================="
             echo "Triggering Test workflow for $env"
@@ -57,6 +74,7 @@ jobs:
             gh workflow run reusable-test.yml --ref main -F environment=$env
             echo "Waiting for test workflow ($env) to complete..."
             sleep 30  # Adjust this to the time your test workflow needs to complete
+
             # Step 4: Send notification for manager approval (optional)
             if [ "$env" != "prod" ]; then
               echo "Sending approval notification to manager for $env environment..."
