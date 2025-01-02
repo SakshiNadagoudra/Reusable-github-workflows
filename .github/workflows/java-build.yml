@@ -28,27 +28,33 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gh
 
-      - name: Deploy Sequentially to All Environments
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Required for GitHub CLI
+      - name: Trigger Deploy and Test Workflows Sequentially with Approval
         run: |
-          for env in dev sit prod; do
-            echo "====================================="
-            echo "Starting deployment for $env"
-            echo "====================================="
+          # Define environments
+          ENVIRONMENTS=("dev" "sit" "prod")
 
-            echo "Calling Reusable Workflow 1 for $env"
-            gh workflow run reusable-test.yml --ref main -F environment=$env
-            echo "Waiting for reusable workflow 1 to complete..."
-            sleep 30  # Add delay if necessary to avoid immediate execution
-
-            echo "Calling Reusable Workflow 2 for $env"
+          # Loop through each environment
+          for env in "${ENVIRONMENTS[@]}"; do
+            # Deploy workflow for the current environment
+            echo "====================================="
+            echo "Triggering Deploy workflow for $env"
+            echo "====================================="
             gh workflow run reusable-deploy.yml --ref main -F environment=$env
-            echo "Waiting for reusable workflow 2 to complete..."
-            sleep 30  # Adjust delay if needed
+            echo "Waiting for deploy workflow ($env) to complete..."
+            sleep 30  # Adjust this to the time your deploy workflow needs to complete
 
+            # Test workflow for the current environment
+            echo "====================================="
+            echo "Triggering Test workflow for $env"
+            echo "====================================="
+            gh workflow run reusable-test.yml --ref main -F environment=$env
+            echo "Waiting for test workflow ($env) to complete..."
+            sleep 30  # Adjust this to the time your test workflow needs to complete
+
+            # Wait for manual approval before proceeding to the next environment (GitHub environment protection rules)
             if [ "$env" != "prod" ]; then
               echo "Waiting for manual approval to proceed to the next environment..."
+              # This step is automatically handled by GitHub when the next environment is reached
             fi
           done
 
