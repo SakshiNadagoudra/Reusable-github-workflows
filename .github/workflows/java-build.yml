@@ -3,7 +3,7 @@ name: Build and Deploy Java Application
 on:
   push:
     branches:
-      - main # Trigger the pipeline when there is a push to the main branch (change to your branch if necessary)
+      - feature-branch # Trigger the pipeline when there is a push to the main branch (change to your branch if necessary)
 
 jobs:
   deploy-and-test:
