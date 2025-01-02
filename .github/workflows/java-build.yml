@@ -28,16 +28,25 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gh
 
-      - name: Trigger Deploy and Test Workflows Sequentially with Approval
+      - name: Deploy and Test Sequentially with Approval
         env:
           GH_TOKEN: ${{ github.token }}  # Set the GH_TOKEN environment variable
         run: |
           # Define environments
           ENVIRONMENTS=("dev" "sit" "prod")
+          APPROVAL_FLAG="false"  # To track approval status
+
+          # Function to send notification for approval
+          send_approval_notification() {
+            echo "Sending approval notification to manager for $1 environment..."
+            # Send the notification to the manager. You can use Slack, Email, or GitHub comments.
+            # Example for Slack (adjust based on your setup):
+            # curl -X POST -H 'Content-type: application/json' --data '{"text":"Please approve deployment for '$1'"}' https://hooks.slack.com/services/TOKEN
+          }
 
           # Loop through each environment
           for env in "${ENVIRONMENTS[@]}"; do
-            # Deploy workflow for the current environment
+            # Step 1: Deploy to the current environment
             echo "====================================="
             echo "Triggering Deploy workflow for $env"
             echo "====================================="
@@ -45,7 +54,7 @@ jobs:
             echo "Waiting for deploy workflow ($env) to complete..."
             sleep 30  # Adjust this to the time your deploy workflow needs to complete
 
-            # Test workflow for the current environment
+            # Step 2: Test the current environment
             echo "====================================="
             echo "Triggering Test workflow for $env"
             echo "====================================="
@@ -53,10 +62,12 @@ jobs:
             echo "Waiting for test workflow ($env) to complete..."
             sleep 30  # Adjust this to the time your test workflow needs to complete
 
-            # Wait for manual approval before proceeding to the next environment (GitHub environment protection rules)
+            # Step 3: If successful, notify the manager for approval
             if [ "$env" != "prod" ]; then
-              echo "Waiting for manual approval to proceed to the next environment..."
-              # This step is automatically handled by GitHub when the next environment is reached
+              send_approval_notification $env
+              echo "Waiting for manager approval before proceeding to the next environment..."
+              # Here we assume you are using GitHub's environment protection rule to handle approval for the next environment.
+              # After the approval process, continue the workflow. GitHub automatically handles this pausing based on protection rules.
             fi
           done
 
