@@ -18,6 +18,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -29,6 +31,8 @@ jobs:
           sudo apt-get install -y gh
 
       - name: Trigger Deploy and Test Workflows Sequentially with Approval
+        env:
+          GH_TOKEN: ${{ github.token }}  # Set the GH_TOKEN environment variable
         run: |
           # Define environments
           ENVIRONMENTS=("dev" "sit" "prod")
