@@ -76,23 +76,5 @@ jobs:
             echo "Waiting for test workflow ($env) to complete..."
             sleep 30  # Adjust this to the time your test workflow needs to complete
 
-            # Step 5: Send approval notification with test results
-            TEST_RUN_ID=$(gh run list --workflow reusable-test.yml --json databaseId --jq '.[0].databaseId')
-            TEST_RESULTS=$(gh run view $TEST_RUN_ID --log)
-            APPROVAL_LINK="https://github.com/YOUR_REPOSITORY/actions/runs/$TEST_RUN_ID"
-            gh api repos/YOUR_USERNAME/YOUR_REPOSITORY/dispatches -f event_type=approval_notification -f client_payload="{\"text\": \"Test results for $env environment: \n$TEST_RESULTS \n\nPlease approve the deployment to the next environment by clicking [here]($APPROVAL_LINK).\"}"
-
-            # Step 6: Send notification for manager approval (optional)
-            if [ "$env" != "prod" ]; then
-              echo "Sending approval notification to manager for $env environment..."
-              # Notification logic goes here (Slack, email, etc.)
-            fi
+            # Optional: Add any additional steps or logic needed here for your workflow
           done
-
-
-        
-
-
-
-
-  
