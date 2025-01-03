@@ -36,7 +36,7 @@ jobs:
           name: build-artifacts
           path: target/*.jar
 
-  deploy and test:
+  deploy-and-test:
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -54,7 +54,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}  # Set the GH_TOKEN environment variable
         run: |
           # Define environments
-          ENVIRONMENTS=("dev" "sit" "prod")
+          ENVIRONMENTS=("dev" "sit" "uat" "prod")
           # Loop through each environment
           for env in "${ENVIRONMENTS[@]}"; do
             # Step 1: Trigger Deploy workflow for the current environment
