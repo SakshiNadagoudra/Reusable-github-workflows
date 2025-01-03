@@ -7,10 +7,18 @@ on:
         description: "The environment to deploy to"
         required: true
         type: string
+      artifact_name:
+        description: "The name of the artifact"
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       environment:
         description: "The environment to deploy to"
+        required: true
+        type: string
+      artifact_name:
+        description: "The name of the artifact"
         required: true
         type: string
 
@@ -40,9 +48,10 @@ jobs:
         if: ${{ inputs.environment != 'dev' }}
         uses: actions/download-artifact@v3
         with:
-          name: build-artifacts  # Ensure this matches the artifact name in the main workflow
+          name: ${{ inputs.artifact_name }}  # Ensure this matches the artifact name in the main workflow
 
       - name: Deploy Application
         run: |
-          echo "Deploying to the ${{ inputs.environment }} environment"
+          ARTIFACT_NAME=${{ inputs.artifact_name }}
+          echo "Deploying to the ${{ inputs.environment }} environment with artifact $ARTIFACT_NAME"
           # Add your deployment logic here (e.g., copying files, running scripts)
