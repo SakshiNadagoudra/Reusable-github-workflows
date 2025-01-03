@@ -7,8 +7,7 @@ on:
     workflow_dispatch:
 
 jobs:
-  
-  build:
+  build-dev:
     runs-on: ubuntu-latest
     steps: 
       - name: Checkout Code
@@ -23,24 +22,18 @@ jobs:
       - name: Build with Maven
         run: mvn clean install
 
-      - name: Upload Build Artifacts
+      - name: Tag and Upload Build Artifacts
+        run: |
+          ARTIFACT_NAME="dev-artifact"
+          mkdir -p artifacts
+          cp target/*.jar artifacts/$ARTIFACT_NAME.jar
         uses: actions/upload-artifact@v3
         with:
-          name: build-artifacts
-          path: target/*.jar
-
-      - name: List Artifacts  # Debug step to verify artifact upload
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const artifacts = await github.rest.actions.listArtifactsForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            });
-            console.log("Available artifacts:", artifacts.data.artifacts);
+          name: ${{ steps.set_tag_name.outputs.artifact_name }}
+          path: artifacts/*
 
   deploy-and-test:
-    needs: build
+    needs: build-dev
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -54,17 +47,21 @@ jobs:
 
       - name: Deploy and Test Sequentially with Approval
         env:
-          GH_TOKEN: ${{ github.token }}  # Set the GH_TOKEN environment variable
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Set the GH_TOKEN environment variable
         run: |
-          # Define environments
-          ENVIRONMENTS=("dev" "sit" "uat" "prod")
+          # Define environments and their corresponding artifact names
+          ENVIRONMENTS=("sit" "uat" "prod")
+          ARTIFACT_NAMES=("sit-artifact" "uat-artifact" "prod-artifact")
           # Loop through each environment
-          for env in "${ENVIRONMENTS[@]}"; do
+          for i in "${!ENVIRONMENTS[@]}"; do
+            env="${ENVIRONMENTS[$i]}"
+            artifact_name="${ARTIFACT_NAMES[$i]}"
+
             # Step 1: Trigger Deploy workflow for the current environment
             echo "====================================="
-            echo "Triggering Deploy workflow for $env"
+            echo "Triggering Deploy workflow for $env with artifact $artifact_name"
             echo "====================================="
-            gh workflow run reusable-deploy.yml --ref main -F environment=$env
+            gh workflow run reusable-deploy.yml --ref main -F environment=$env -F artifact_name=$artifact_name
 
             # Step 2: Wait for deploy workflow to start
             echo "Waiting for deploy workflow ($env) to start..."
@@ -95,7 +92,7 @@ jobs:
             echo "====================================="
             echo "Triggering Test workflow for $env"
             echo "====================================="
-            gh workflow run reusable-test.yml --ref main -F environment=$env
+            gh workflow run reusable-test.yml --ref main -F environment=$env -F artifact_name=$artifact_name
             echo "Waiting for test workflow ($env) to complete..."
             sleep 30  # Adjust this to the time your test workflow needs to complete
 
