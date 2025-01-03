@@ -35,7 +35,6 @@ jobs:
         run: |
           # Define environments
           ENVIRONMENTS=("dev" "sit" "prod")
-          
           # Loop through each environment
           for env in "${ENVIRONMENTS[@]}"; do
             # Step 1: Trigger Deploy workflow for the current environment
@@ -43,26 +42,33 @@ jobs:
             echo "Triggering Deploy workflow for $env"
             echo "====================================="
             gh workflow run reusable-deploy.yml --ref main -F environment=$env
-            echo "Waiting for deploy workflow ($env) to complete..."
 
-            # Step 2: Wait for approval for Deploy workflow (if environment is not 'dev')
-            if [ "$env" != "dev" ]; then
-              echo "====================================="
-              echo "Waiting for manual approval for $env"
-              echo "====================================="
-              # The deployment should be manually approved in GitHub based on environment protection rules
-              gh run watch ${{ github.run_id }} --status completed
+            # Step 2: Wait for deploy workflow to start
+            echo "Waiting for deploy workflow ($env) to start..."
+            sleep 30  # Adjust this to a suitable delay for your workflow
 
-              # Check approval status
-              approval_status=$(gh api /repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/approvals | jq -r '.[0].status')
-              if [ "$approval_status" == "rejected" ]; then
-                echo "Approval for $env was rejected. Stopping workflow."
-                exit 1
+            # Step 3: Monitor deploy workflow status
+            while true; do
+              STATUS=$(gh run list --workflow reusable-deploy.yml --json status --jq '.[0].status')
+              CONCLUSION=$(gh run list --workflow reusable-deploy.yml --json conclusion --jq '.[0].conclusion')
+              if [ "$STATUS" == "completed" ]; then
+                if [ "$CONCLUSION" == "success" ]; then
+                  echo "Deploy workflow for $env completed successfully."
+                  break
+                else
+                  echo "Deploy workflow for $env failed."
+                  exit 1
+                fi
+              elif [ "$STATUS" == "waiting" ]; then
+                echo "Waiting for manual approval for $env..."
+                sleep 30
+              else
+                echo "Deploy workflow for $env is in progress..."
+                sleep 30
               fi
-              echo "Approval granted for $env."
-            fi
+            done
 
-            # Step 3: Trigger Test workflow for the current environment after approval
+            # Step 4: Trigger Test workflow for the current environment after approval
             echo "====================================="
             echo "Triggering Test workflow for $env"
             echo "====================================="
@@ -70,12 +76,14 @@ jobs:
             echo "Waiting for test workflow ($env) to complete..."
             sleep 30  # Adjust this to the time your test workflow needs to complete
 
-            # Step 4: Optional Notification to Manager (for environments other than prod)
+            # Step 5: Send notification for manager approval (optional)
             if [ "$env" != "prod" ]; then
               echo "Sending approval notification to manager for $env environment..."
               # Notification logic goes here (Slack, email, etc.)
             fi
           done
+
+
 
 
   # # Stage 1: Build
