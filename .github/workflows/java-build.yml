@@ -48,6 +48,7 @@ jobs:
             sleep 30  # Adjust this to a suitable delay for your workflow
 
             # Step 3: Monitor deploy workflow status
+            echo "Waiting for manual approval for $env..."
             while true; do
               STATUS=$(gh run list --workflow reusable-deploy.yml --json status --jq '.[0].status')
               CONCLUSION=$(gh run list --workflow reusable-deploy.yml --json conclusion --jq '.[0].conclusion')
@@ -60,7 +61,6 @@ jobs:
                   exit 1
                 fi
               elif [ "$STATUS" == "waiting" ]; then
-                echo "Waiting for manual approval for $env..."
                 sleep 30
               else
                 echo "Deploy workflow for $env is in progress..."
@@ -76,7 +76,13 @@ jobs:
             echo "Waiting for test workflow ($env) to complete..."
             sleep 30  # Adjust this to the time your test workflow needs to complete
 
-            # Step 5: Send notification for manager approval (optional)
+            # Step 5: Send approval notification with test results
+            TEST_RUN_ID=$(gh run list --workflow reusable-test.yml --json databaseId --jq '.[0].databaseId')
+            TEST_RESULTS=$(gh run view $TEST_RUN_ID --log)
+            APPROVAL_LINK="https://github.com/YOUR_REPOSITORY/actions/runs/$TEST_RUN_ID"
+            gh api repos/YOUR_USERNAME/YOUR_REPOSITORY/dispatches -f event_type=approval_notification -f client_payload="{\"text\": \"Test results for $env environment: \n$TEST_RESULTS \n\nPlease approve the deployment to the next environment by clicking [here]($APPROVAL_LINK).\"}"
+
+            # Step 6: Send notification for manager approval (optional)
             if [ "$env" != "prod" ]; then
               echo "Sending approval notification to manager for $env environment..."
               # Notification logic goes here (Slack, email, etc.)
@@ -84,81 +90,9 @@ jobs:
           done
 
 
+        
 
 
-  # # Stage 1: Build
-  # build:
-  #   name: Build Java Code
-  #   runs-on: ubuntu-latest
-  #   needs: run-on-merge
-  #   steps: 
-  #     - name: Checkout Code
-  #       uses: actions/checkout@v3
 
-  #     - name: Set up JDK
-  #       uses: actions/setup-java@v3
-  #       with:
-  #         distribution: 'adopt'
-  #         java-version: '11'
 
-  #     - name: Build with Maven
-  #       run: mvn clean install
-
-  #     - name: Upload Build Artifacts
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: build-artifacts
-  #         path: target/*.jar
-
-  # # Stage 3: Deploy to Development
-  # deploy-dev:
-  #   name: Deploy to Dev Environment
-  #   needs: build
-  #   uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main # Reference the reusable workflow
-  #   with:
-  #     environment: dev  # Pass the environment name to the reusable workflow
-
-  # test-sit:
-  #   name: Test in SIT
-  #   needs: deploy-dev
-  #   uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-test.yml@main
-  #   with:
-  #     environment: sit
-
-  # # Stage 3: Deploy to Development
-  # deploy-sit:
-  #   name: Deploy to Sit Environment
-  #   needs: test-sit
-  #   uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
-  #   with:
-  #     environment: sit
   
-  # test-uat:
-  #   name: Test in Uat
-  #   needs: deploy-sit
-  #   uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-test.yml@main
-  #   with:
-  #     environment: uat
-
-  # # Stage 3: Deploy to Development
-  # deploy-uat:
-  #   name: Deploy to Uat Environment
-  #   needs: test-uat
-  #   uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
-  #   with:
-  #     environment: uat
-  
-  # test-prod:
-  #   name: Test in Prod
-  #   needs: deploy-uat
-  #   uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-test.yml@main
-  #   with:
-  #     environment: prod
-
-  # # Stage 4: Deploy to Production
-  # deploy-Prod:
-  #   name: Deploy to Production Environment
-  #   needs: test-prod
-  #   uses: SakshiNadagoudra/Reusable-github-workflows/.github/workflows/reusable-deploy.yml@main  # Reference the reusable workflow
-  #   with:
-  #     environment: prod
