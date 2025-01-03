@@ -22,11 +22,13 @@ jobs:
       - name: Build with Maven
         run: mvn clean install
 
-      - name: Prepare and Upload Build Artifacts
+      - name: Prepare Artifact
         run: |
           ARTIFACT_NAME="dev-artifact"
           mkdir -p artifacts
           cp target/*.jar artifacts/$ARTIFACT_NAME.jar
+
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v3
         with:
           name: dev-artifact
