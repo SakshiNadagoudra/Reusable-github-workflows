@@ -6,7 +6,7 @@ on:
       environment:
         required: true
         type: string
-  workflow_dispatch: 
+  workflow_dispatch:
     inputs:
       environment:
         description: "The environment to deploy to"
@@ -17,8 +17,6 @@ jobs:
   test:
     name: Test in ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    # environment: 
-    #   name: ${{ inputs.environment }} # Attach the job to the specified environment for approval gates
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -41,9 +39,31 @@ jobs:
             const repository = context.repo.repo;
             const runId = context.runId;
             const environment = '${{ inputs.environment }}';  // Environment passed from workflow
+            const nextEnvironment = environment === 'dev' ? 'sit' : (environment === 'sit' ? 'prod' : null);
+            if (!nextEnvironment) {
+              console.log('No next environment to deploy to.');
+              return;
+            }
+
+            // Fetch the next deploy workflow run ID
+            const nextDeployRun = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'reusable-deploy.yml',
+              event: 'workflow_dispatch',
+              status: 'in_progress',
+              per_page: 1
+            });
+
+            const nextDeployRunId = nextDeployRun.data.workflow_runs.length > 0 ? nextDeployRun.data.workflow_runs[0].id : null;
+            if (!nextDeployRunId) {
+              console.log('Unable to find the next deploy workflow run ID.');
+              return;
+            }
+
             const workflowUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${runId}`;
-            const approvalUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${runId}`;
-            const artifactUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${runId}/artifacts`;  // Artifact URL for download
+            const approvalUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${nextDeployRunId}`;
+            const artifactUrl = `https://github.com/${context.repo.owner}/${repository}/suites/${runId}/artifacts`;
 
             const subject = "Test Execution Complete - Approval Needed";
             const message = `
@@ -57,7 +77,7 @@ jobs:
 
             Workflow details: ${workflowUrl}
 
-            To approve and proceed to the next environment ${environment}, please visit the following approval link:
+            To approve and proceed to the next environment ${nextEnvironment}, please visit the following approval link:
             [Approve Deployment](${approvalUrl})
             
             Thanks,
