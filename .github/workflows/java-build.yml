@@ -52,8 +52,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Set the GH_TOKEN environment variable
         run: |
           # Define environments and their corresponding artifact names
-          ENVIRONMENTS=("sit" "uat" "prod")
-          ARTIFACT_NAMES=("sit-artifact" "uat-artifact" "prod-artifact")
+          ENVIRONMENTS=("dev" "sit" "uat" "prod")
+          ARTIFACT_NAMES=("dev-artifact" "sit-artifact" "uat-artifact" "prod-artifact")
           # Loop through each environment
           for i in "${!ENVIRONMENTS[@]}"; do
             env="${ENVIRONMENTS[$i]}"
