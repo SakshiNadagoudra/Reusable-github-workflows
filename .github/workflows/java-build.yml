@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Run on PR merge
         run: echo "This workflow runs only when a pull request is merged."
-
+  
   build:
     runs-on: ubuntu-latest
     steps: 
@@ -28,13 +28,17 @@ jobs:
           java-version: '11'
 
       - name: Build with Maven
-        run: mvn clean install
+        run: |
+          echo "Building the project"
+          mvn clean install 
+          mkdir -p build 
+          echo "Build output" > build/output.txt
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: build-artifacts
-          path: target/*.jar
+          name: build-artifacts 
+          path: build/
 
   deploy-and-test:
     needs: build
