@@ -7,49 +7,32 @@ on:
         description: "The environment to deploy to"
         required: true
         type: string
-  workflow_dispatch: 
+  workflow_dispatch:
     inputs:
-      environment: 
+      environment:
         description: "The environment to deploy to"
         required: true
         type: string
-    
+
 jobs:
   deploy:
     name: Deploy to ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    environment: 
+    environment:
       name: ${{ inputs.environment }} # Attach the job to the specified environment for approval gates
 
     steps:
-      # Conditional step: Checkout code only if the environment is 'dev'
       - name: Checkout Code
         if: ${{ inputs.environment == 'dev' }}
         uses: actions/checkout@v3
 
-      # Conditional step: Download artifacts from the previous environment for non-'dev' environments
       - name: Download Build Artifacts from Previous Environment
         if: ${{ inputs.environment != 'dev' }}
         uses: actions/download-artifact@v3
         with:
           name: build-artifacts  # Ensure this matches the artifact name in the main workflow
 
-      # Deploy the application
       - name: Deploy Application
         run: |
           echo "Deploying to the ${{ inputs.environment }} environment"
           # Add your deployment logic here (e.g., copying files, running scripts)
-
-
-      # - name: Notify Manager via GitHub Issue
-      #   uses: actions/github-script@v6
-      #   with:
-      #     script: |
-      #       const { owner, repo } = context.repo;
-      #       await github.rest.issues.create({
-      #         owner,
-      #         repo,
-      #         title: `Approval Required: Deployment to ${{ inputs.environment }} Environment`,
-      #         body: `The workflow is awaiting approval for deployment to **${{ inputs.environment }} Environment**.
-      #         \nPlease review and approve: https://github.com/${owner}/${repo}/actions/runs/${context.runId}`
-      #       });
