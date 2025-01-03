@@ -72,12 +72,14 @@ jobs:
             while true; do
               STATUS=$(gh run list --workflow reusable-deploy.yml --json status --jq '.[0].status')
               CONCLUSION=$(gh run list --workflow reusable-deploy.yml --json conclusion --jq '.[0].conclusion')
-              if [ "$STATUS" == "completed" && "$CONCLUSION" == "success" ]; then
-                echo "Deploy workflow for $env completed successfully."
-                break
-              elif [ "$STATUS" == "completed" && "$CONCLUSION" != "success" ]; then
-                echo "Deploy workflow for $env failed."
-                exit 1
+              if [ "$STATUS" == "completed" ]; then
+                if [ "$CONCLUSION" == "success" ]; then
+                  echo "Deploy workflow for $env completed successfully."
+                  break
+                else
+                  echo "Deploy workflow for $env failed."
+                  exit 1
+                fi
               elif [ "$STATUS" == "waiting" ]; then
                 sleep 30
               else
