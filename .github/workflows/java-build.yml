@@ -7,7 +7,7 @@ on:
     workflow_dispatch:
 
 jobs:
-  
+
   run-on-merge:
     runs-on: ubuntu-latest
     if: contains(github.event.head_commit.message, 'Merge pull request')  # Check if the commit is a PR merge
@@ -72,14 +72,12 @@ jobs:
             while true; do
               STATUS=$(gh run list --workflow reusable-deploy.yml --json status --jq '.[0].status')
               CONCLUSION=$(gh run list --workflow reusable-deploy.yml --json conclusion --jq '.[0].conclusion')
-              if [ "$STATUS" == "completed" ]; then
-                if [ "$CONCLUSION" == "success" ]; then
-                  echo "Deploy workflow for $env completed successfully."
-                  break
-                else
-                  echo "Deploy workflow for $env failed."
-                  exit 1
-                fi
+              if [ "$STATUS" == "completed" && "$CONCLUSION" == "success" ]; then
+                echo "Deploy workflow for $env completed successfully."
+                break
+              elif [ "$STATUS" == "completed" && "$CONCLUSION" != "success" ]; then
+                echo "Deploy workflow for $env failed."
+                exit 1
               elif [ "$STATUS" == "waiting" ]; then
                 sleep 30
               else
