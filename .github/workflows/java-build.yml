@@ -7,13 +7,6 @@ on:
     workflow_dispatch:
 
 jobs:
-
-  run-on-merge:
-    runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, 'Merge pull request')  # Check if the commit is a PR merge
-    steps:
-      - name: Run on PR merge
-        run: echo "This workflow runs only when a pull request is merged."
   
   build:
     runs-on: ubuntu-latest
@@ -28,17 +21,23 @@ jobs:
           java-version: '11'
 
       - name: Build with Maven
-        run: |
-          echo "Building the project"
-          mvn clean install 
-          mkdir -p build 
-          echo "Build output" > build/output.txt
+        run: mvn clean install
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: build-artifacts 
-          path: build/
+          name: build-artifacts
+          path: target/*.jar
+
+      - name: List Artifacts  # Debug step to verify artifact upload
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            console.log("Available artifacts:", artifacts.data.artifacts);
 
   deploy-and-test:
     needs: build
