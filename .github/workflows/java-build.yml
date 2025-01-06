@@ -7,8 +7,10 @@ on:
     workflow_dispatch:
 
 jobs:
-  build-dev:
+  build:
+    name: Build Java Code
     runs-on: ubuntu-latest
+    needs: run-on-merge
     steps: 
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -22,25 +24,14 @@ jobs:
       - name: Build with Maven
         run: mvn clean install
 
-      - name: Prepare Artifact
-        run: |
-          ARTIFACT_NAME="dev-artifact"
-          mkdir -p artifacts
-          cp target/*.jar artifacts/$ARTIFACT_NAME.jar
-
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: dev-artifact
-          path: artifacts/*
-
-      - name: List Uploaded Artifacts  # Debug step to confirm artifact upload
-        run: |
-          echo "Listing uploaded artifacts:"
-          ls -l artifacts/*
+          name: build-artifacts
+          path: target/*.jar
 
   deploy-and-test:
-    needs: build-dev
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
