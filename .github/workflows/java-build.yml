@@ -50,20 +50,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-            # Define environments
             ENVIRONMENTS=("dev" "sit" "prod")
             for env in "${ENVIRONMENTS[@]}"; do
               echo "====================================="
               echo "Triggering Deploy workflow for $env"
               echo "====================================="
 
-              # Trigger Deploy workflow and capture the run_id
-              run_id=$(gh workflow run reusable-deploy.yml --ref main -F environment=$env | grep -oP '(?<=https://github.com/.*/actions/runs/)\d+')
+              # Trigger Deploy workflow and extract the run_id
+              deploy_output=$(gh workflow run reusable-deploy.yml --ref main -F environment=$env)
+              run_id=$(echo "$deploy_output" | awk -F '/' '/actions\/runs/ {print $NF}')
               echo "Triggered deploy workflow with run ID: $run_id"
 
               # Wait for Deploy workflow to complete
               echo "Waiting for deploy workflow ($env) to complete..."
-              gh run watch $run_id --exit-status
+              gh run watch "$run_id" --exit-status
 
               # Check approval status if environment is not 'dev'
               if [ "$env" != "dev" ]; then
@@ -71,7 +71,7 @@ jobs:
                 echo "Checking approval status for $env"
                 echo "====================================="
 
-                approval_status=$(gh api /repos/${{ github.repository }}/actions/runs/$run_id/approvals -q '.[0].status')
+                approval_status=$(gh api repos/${{ github.repository }}/actions/runs/"$run_id"/approvals | jq -r '.[0].status')
                 if [ "$approval_status" == "rejected" ]; then
                   echo "Approval for $env was rejected. Stopping workflow."
                   exit 1
@@ -83,7 +83,8 @@ jobs:
               echo "====================================="
               echo "Triggering Test workflow for $env"
               echo "====================================="
-              test_run_id=$(gh workflow run reusable-test.yml --ref main -F environment=$env -q '.id')
+              test_output=$(gh workflow run reusable-test.yml --ref main -F environment=$env)
+              test_run_id=$(echo "$test_output" | awk -F '/' '/actions\/runs/ {print $NF}')
               echo "Triggered test workflow with run ID: $test_run_id"
-              gh run watch $test_run_id --exit-status
+              gh run watch "$test_run_id" --exit-status
             done
