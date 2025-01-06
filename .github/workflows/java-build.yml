@@ -1,4 +1,4 @@
-name: Build and Upload Artifacts
+name: Build Java Application
 
 on:
   push:
@@ -16,7 +16,6 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
-          distribution: 'adopt'
           java-version: '11'
 
       - name: Build with Maven
@@ -25,8 +24,12 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: artifacts
+          name: build-artifacts
           path: target/*.jar
+
+      - name: Output Run ID
+        run: echo "run_id=${{ github.run_id }}" >> $GITHUB_ENV
+
 
 
   deploy-and-test:
