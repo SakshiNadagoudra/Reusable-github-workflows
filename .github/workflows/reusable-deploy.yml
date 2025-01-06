@@ -13,16 +13,21 @@ on:
         description: "The environment to deploy to"
         required: true
         type: string
+      run_id:
+        description: "The run ID of the build workflow"
+        required: true
+        type: string
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment }}
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
-
+      
       - name: List Artifacts
         uses: actions/github-script@v6
         with:
@@ -33,11 +38,12 @@ jobs:
             });
             console.log("Available artifacts:", artifacts.data.artifacts);
 
-      - name: Download Build Artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: artifacts
+      - name: Download Build Artifacts from Feature Branch
+        run: |
+          echo "Downloading artifacts from run ID ${{ inputs.run_id }}"
+          gh run download ${{ inputs.run_id }} --name build-artifacts
 
       - name: Deploy Application
         run: |
           echo "Deploying application to ${{ inputs.environment }}"
+
