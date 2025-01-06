@@ -45,7 +45,7 @@ jobs:
           echo "Setting up GitHub CLI"
           sudo apt-get update
           sudo apt-get install -y gh
-
+      
       - name: Deploy and Test Sequentially with Approval
         env:
           GH_TOKEN: ${{ github.token }}
@@ -64,12 +64,7 @@ jobs:
               # Extract run_id from deploy_output
               run_id=$(echo "$deploy_output" | grep -oP '(?<=actions/runs/)\d+' || echo "")
               if [ -z "$run_id" ]; then
-                echo "Failed to extract run_id. Fetching latest run ID via API..."
-                run_id=$(gh api repos/${{ github.repository }}/actions/workflows/reusable-deploy.yml/runs -q '.workflow_runs[0].id')
-              fi
-
-              if [ -z "$run_id" ]; then
-                echo "Could not determine run_id for $env. Exiting."
+                echo "Failed to extract run_id. Exiting."
                 exit 1
               fi
 
