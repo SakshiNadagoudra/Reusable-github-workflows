@@ -10,7 +10,7 @@ jobs:
   build:
     name: Build Java Code
     runs-on: ubuntu-latest
-    needs: run-on-merge
+    # needs: run-on-merge
     steps: 
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -43,56 +43,48 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gh
 
-      - name: Deploy and Test Sequentially with Approval
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Set the GH_TOKEN environment variable
-        run: |
-          # Define environments and their corresponding artifact names
-          ENVIRONMENTS=("dev" "sit" "uat" "prod")
-          ARTIFACT_NAMES=("dev-artifact" "sit-artifact" "uat-artifact" "prod-artifact")
-          # Loop through each environment
-          for i in "${!ENVIRONMENTS[@]}"; do
-            env="${ENVIRONMENTS[$i]}"
-            artifact_name="${ARTIFACT_NAMES[$i]}"
-
-            # Step 1: Trigger Deploy workflow for the current environment
-            echo "====================================="
-            echo "Triggering Deploy workflow for $env with artifact $artifact_name"
-            echo "====================================="
-            gh workflow run reusable-deploy.yml --ref main -F environment=$env -F artifact_name=$artifact_name
-
-            # Step 2: Wait for deploy workflow to start
-            echo "Waiting for deploy workflow ($env) to start..."
-            sleep 30  # Adjust this to a suitable delay for your workflow
-
-            # Step 3: Monitor deploy workflow status
-            echo "Waiting for manual approval for $env..."
-            while true; do
-              STATUS=$(gh run list --workflow reusable-deploy.yml --json status --jq '.[0].status')
-              CONCLUSION=$(gh run list --workflow reusable-deploy.yml --json conclusion --jq '.[0].conclusion')
-              if [ "$STATUS" == "completed" ]; then
-                if [ "$CONCLUSION" == "success" ]; then
-                  echo "Deploy workflow for $env completed successfully."
-                  break
-                else
-                  echo "Deploy workflow for $env failed."
+          - name: Deploy and Test Sequentially with Approval
+          env:
+            GH_TOKEN: ${{ github.token }}  # Set the GH_TOKEN environment variable
+          run: |
+            # Define environments
+            ENVIRONMENTS=("dev" "sit" "prod")
+            # Loop through each environment
+            for env in "${ENVIRONMENTS[@]}"; do
+              # Step 1: Trigger Deploy workflow for the current environment
+              echo "====================================="
+              echo "Triggering Deploy workflow for $env"
+              echo "====================================="
+              gh workflow run reusable-deploy.yml --ref main -F environment=$env
+              echo "Waiting for deploy workflow ($env) to complete..."
+              # Step 2: Wait for approval if environment is not 'dev'
+              if [ "$env" != "dev" ]; then
+                echo "====================================="
+                echo "Waiting for manual approval for $env"
+                echo "====================================="
+                # This is where GitHub will pause the workflow for manual approval.
+                # Ensure your environment protection rules are correctly configured to require approval
+                # for 'sit' and 'prod' environments.
+                # This line assumes your workflow will pause until approval is granted
+                gh run watch ${{ github.run_id }} --status completed
+                approval_status=$(gh api /repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/approvals | jq -r '.[0].status')
+                if [ "$approval_status" == "rejected" ]; then
+                  echo "Approval for $env was rejected. Stopping workflow."
                   exit 1
                 fi
-              elif [ "$STATUS" == "waiting" ]; then
-                sleep 30
-              else
-                echo "Deploy workflow for $env is in progress..."
-                sleep 30
+                echo "Approval granted for $env."
+              fi
+              # Step 3: Trigger Test workflow for the current environment after approval
+              echo "====================================="
+              echo "Triggering Test workflow for $env"
+              echo "====================================="
+              gh workflow run reusable-test.yml --ref main -F environment=$env
+              echo "Waiting for test workflow ($env) to complete..."
+              sleep 30  # Adjust this to the time your test workflow needs to complete
+              # Step 4: Send notification for manager approval (optional)
+              if [ "$env" != "prod" ]; then
+                echo "Sending approval notification to manager for $env environment..."
+                # Notification logic goes here (Slack, email, etc.)
               fi
             done
-
-            # Step 4: Trigger Test workflow for the current environment after approval
-            echo "====================================="
-            echo "Triggering Test workflow for $env"
-            echo "====================================="
-            gh workflow run reusable-test.yml --ref main -F environment=$env -F artifact_name=$artifact_name
-            echo "Waiting for test workflow ($env) to complete..."
-            sleep 30  # Adjust this to the time your test workflow needs to complete
-
-            # Optional: Add any additional steps or logic needed here for your workflow
-          done
+  
