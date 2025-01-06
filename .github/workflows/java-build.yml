@@ -58,7 +58,7 @@ jobs:
               echo "====================================="
 
               # Trigger Deploy workflow and capture the run_id
-              run_id=$(gh workflow run reusable-deploy.yml --ref main -F environment=$env -q '.id')
+              run_id=$(gh workflow run reusable-deploy.yml --ref main -F environment=$env | grep -oP '(?<=https://github.com/.*/actions/runs/)\d+')
               echo "Triggered deploy workflow with run ID: $run_id"
 
               # Wait for Deploy workflow to complete
