@@ -46,49 +46,63 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gh
 
-      - name: Deploy and Test Sequentially with Approval
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-            ENVIRONMENTS=("dev" "sit" "prod")
-            for env in "${ENVIRONMENTS[@]}"; do
-              echo "====================================="
-              echo "Triggering Deploy workflow for $env"
-              echo "====================================="
-
-              # Retrieve the build run ID
-              build_run_id=$GITHUB_RUN_ID
-              echo "Using build run ID: $build_run_id"
-
-              # Trigger Deploy workflow and extract the run_id
-              deploy_output=$(gh workflow run reusable-deploy.yml --ref main -F environment=$env -F run_id=$build_run_id)
-              run_id=$(echo "$deploy_output" | awk -F '/' '/actions\/runs/ {print $NF}')
-              echo "Triggered deploy workflow with run ID: $run_id"
-
-              # Wait for Deploy workflow to complete
-              echo "Waiting for deploy workflow ($env) to complete..."
-              gh run watch "$run_id" --exit-status
-
-              # Check approval status if environment is not 'dev'
-              if [ "$env" != "dev" ]; then
+          - name: Deploy and Test Sequentially with Approval
+          env:
+            GH_TOKEN: ${{ github.token }}
+          run: |
+              ENVIRONMENTS=("dev" "sit" "prod")
+              for env in "${ENVIRONMENTS[@]}"; do
                 echo "====================================="
-                echo "Checking approval status for $env"
+                echo "Triggering Deploy workflow for $env"
                 echo "====================================="
-
-                approval_status=$(gh api repos/${{ github.repository }}/actions/runs/"$run_id"/approvals | jq -r '.[0].status')
-                if [ "$approval_status" == "rejected" ]; then
-                  echo "Approval for $env was rejected. Stopping workflow."
+  
+                # Trigger Deploy workflow and extract the run_id
+                deploy_output=$(gh workflow run reusable-deploy.yml --ref main -F environment=$env -F run_id=$GITHUB_RUN_ID)
+                echo "Deploy workflow triggered. Output:"
+                echo "$deploy_output"
+  
+                # Extract run_id from deploy_output
+                run_id=$(echo "$deploy_output" | grep -oP '(?<=actions/runs/)\d+' || echo "")
+                if [ -z "$run_id" ]; then
+                  echo "Failed to extract run_id. Fetching latest run ID via API..."
+                  run_id=$(gh api repos/${{ github.repository }}/actions/workflows/reusable-deploy.yml/runs -q '.workflow_runs[0].id')
+                fi
+  
+                if [ -z "$run_id" ]; then
+                  echo "Could not determine run_id for $env. Exiting."
                   exit 1
                 fi
-                echo "Approval granted for $env."
-              fi
-
-              # Trigger Test workflow after approval
-              echo "====================================="
-              echo "Triggering Test workflow for $env"
-              echo "====================================="
-              test_output=$(gh workflow run reusable-test.yml --ref main -F environment=$env -F run_id=$run_id)
-              test_run_id=$(echo "$test_output" | awk -F '/' '/actions\/runs/ {print $NF}')
-              echo "Triggered test workflow with run ID: $test_run_id"
-              gh run watch "$test_run_id" --exit-status
-            done
+  
+                echo "Triggered deploy workflow with run ID: $run_id"
+  
+                # Wait for Deploy workflow to complete
+                echo "Waiting for deploy workflow ($env) to complete..."
+                gh run watch "$run_id" --exit-status
+  
+                # Check approval status if environment is not 'dev'
+                if [ "$env" != "dev" ]; then
+                  echo "====================================="
+                  echo "Checking approval status for $env"
+                  echo "====================================="
+  
+                  approval_status=$(gh api repos/${{ github.repository }}/actions/runs/"$run_id"/approvals -q '.[0].status')
+                  if [ "$approval_status" == "rejected" ]; then
+                    echo "Approval for $env was rejected. Stopping workflow."
+                    exit 1
+                  fi
+                  echo "Approval granted for $env."
+                fi
+  
+                # Trigger Test workflow after approval
+                echo "====================================="
+                echo "Triggering Test workflow for $env"
+                echo "====================================="
+                test_output=$(gh workflow run reusable-test.yml --ref main -F environment=$env -F run_id=$run_id)
+                test_run_id=$(echo "$test_output" | grep -oP '(?<=actions/runs/)\d+' || echo "")
+                if [ -z "$test_run_id" ]; then
+                  echo "Failed to extract test run_id. Exiting."
+                  exit 1
+                fi
+                echo "Triggered test workflow with run ID: $test_run_id"
+                gh run watch "$test_run_id" --exit-status
+              done
