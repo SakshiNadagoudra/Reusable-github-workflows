@@ -6,6 +6,9 @@ on:
       environment:
         required: true
         type: string
+      run_id:   # This is added to receive the run_id of the deploy workflow
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       environment:
@@ -25,6 +28,7 @@ jobs:
         run: |
           echo "Running tests in ${{ inputs.environment }}"
           echo "This is a dummy test report for the POC." > test-report.txt
+
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         with:
@@ -36,30 +40,13 @@ jobs:
         with:
           script: |
             const repository = context.repo.repo;
-            const runId = context.runId;
+            const runId = ${{ inputs.run_id }};  // Use the run_id from the input
             const environment = '${{ inputs.environment }}';  // Environment passed from workflow
-            const nextEnvironment = environment === 'dev' ? 'sit' : (environment === 'sit' ? 'prod' : null);
-            if (!nextEnvironment) {
-              console.log('No next environment to deploy to.');
-              return;
-            }
-            // Fetch the next deploy workflow run ID
-            const nextDeployRun = await github.rest.actions.listWorkflowRuns({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'reusable-deploy.yml',
-              event: 'workflow_dispatch',
-              status: 'in_progress',
-              per_page: 1
-            });
-            const nextDeployRunId = nextDeployRun.data.workflow_runs.length > 0 ? nextDeployRun.data.workflow_runs[0].id : null;
-            if (!nextDeployRunId) {
-              console.log('Unable to find the next deploy workflow run ID.');
-              return;
-            }
+
+            // Get the URL for the current test workflow run
             const workflowUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${runId}`;
-            const approvalUrl = `https://github.com/${context.repo.owner}/${repository}/actions/runs/${nextDeployRunId}`;
             const artifactUrl = `https://github.com/${context.repo.owner}/${repository}/suites/${runId}/artifacts`;
+
             const subject = "Test Execution Complete - Approval Needed";
             const message = `
             **Subject:** ${subject}
@@ -67,13 +54,16 @@ jobs:
             Test execution is complete. Please review the test report:
             [Download Test Report](${artifactUrl})
             Workflow details: ${workflowUrl}
-            To approve and proceed to the next environment ${nextEnvironment}, please visit the following approval link:
-            [Approve Deployment](${approvalUrl})
+            To approve and proceed to the next environment, please visit the following approval link:
+            [Approve Deployment](${workflowUrl})
             
             Thanks,
             GitHub-BMO
             `;
+
+            // Print message to console (for debug)
             console.log(message);
+
             // Notify using GitHub API (e.g., comment on the commit)
             await github.rest.repos.createCommitComment({
               owner: context.repo.owner,
