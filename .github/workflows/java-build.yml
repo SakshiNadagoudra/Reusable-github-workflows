@@ -34,8 +34,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      # - name: Checkout Repository
+      #   uses: actions/checkout@v3
 
       - name: Setup GitHub CLI
         run: |
@@ -43,10 +43,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gh
 
-          - name: Deploy and Test Sequentially with Approval
-          env:
-            GH_TOKEN: ${{ github.token }}  # Set the GH_TOKEN environment variable
-          run: |
+      - name: Deploy and Test Sequentially with Approval
+        env:
+          GH_TOKEN: ${{ github.token }}  # Set the GH_TOKEN environment variable
+        run: |
             # Define environments
             ENVIRONMENTS=("dev" "sit" "prod")
             # Loop through each environment
