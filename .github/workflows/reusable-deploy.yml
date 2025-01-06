@@ -30,11 +30,17 @@ jobs:
       name: ${{ inputs.environment }}
 
     steps:
+      # Step 1: Checkout Repository
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set GH_TOKEN
       - name: Set GH_TOKEN
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Set GH_TOKEN for GitHub CLI
         run: echo "GH_TOKEN has been set."
 
+      # Step 3: Download Build Artifacts
       - name: Download Build Artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -42,6 +48,7 @@ jobs:
           echo "Downloading artifacts from run ID ${{ inputs.run_id }}"
           gh run download ${{ inputs.run_id }} --dir artifacts
 
+      # Step 4: Deploy Application
       - name: Deploy Application
         run: |
           echo "Deploying to the ${{ inputs.environment }} environment"
