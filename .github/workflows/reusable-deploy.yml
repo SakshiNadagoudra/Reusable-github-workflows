@@ -7,34 +7,17 @@ on:
         description: "The environment to deploy to"
         required: true
         type: string
-      # artifact_name:
-      #   description: "The name of the artifact"
-      #   required: true
-      #   type: string
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: "The environment to deploy to"
-        required: true
-        type: string
-      # artifact_name:
-      #   description: "The name of the artifact"
-      #   required: true
-      #   type: string
 
 jobs:
   deploy:
-    name: Deploy to ${{ inputs.environment }}
     runs-on: ubuntu-latest
     environment:
-      name: ${{ inputs.environment }}  # Attach the job to the specified environment for approval gates
-
+      name: ${{ inputs.environment }}
     steps:
-      # - name: Checkout Code
-      #   if: ${{ inputs.environment == 'dev' }}
-      #   uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-      - name: List Artifacts  # Debug step to verify artifact availability
+      - name: List Artifacts
         uses: actions/github-script@v6
         with:
           script: |
@@ -44,14 +27,11 @@ jobs:
             });
             console.log("Available artifacts:", artifacts.data.artifacts);
 
-      - name: Download Build Artifacts from Previous Environment
-        # if: ${{ inputs.environment != 'dev' }}
+      - name: Download Build Artifacts
         uses: actions/download-artifact@v3
         with:
-          name: build-artifacts  # Ensure this matches the artifact name in the main workflow
+          name: artifacts
 
       - name: Deploy Application
         run: |
-          # ARTIFACT_NAME=${{ inputs.artifact_name }}
-          echo "Deploying to the ${{ inputs.environment }} environment"
-          # Add your deployment logic here (e.g., copying files, running scripts)
+          echo "Deploying application to ${{ inputs.environment }}"
