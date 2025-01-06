@@ -30,9 +30,9 @@ jobs:
       name: ${{ inputs.environment }}  # Attach the job to the specified environment for approval gates
 
     steps:
-      - name: Checkout Code
-        if: ${{ inputs.environment == 'dev' }}
-        uses: actions/checkout@v3
+      # - name: Checkout Code
+      #   if: ${{ inputs.environment == 'dev' }}
+      #   uses: actions/checkout@v3
 
       - name: List Artifacts  # Debug step to verify artifact availability
         uses: actions/github-script@v6
@@ -45,10 +45,10 @@ jobs:
             console.log("Available artifacts:", artifacts.data.artifacts);
 
       - name: Download Build Artifacts from Previous Environment
-        if: ${{ inputs.environment != 'dev' }}
+        # if: ${{ inputs.environment != 'dev' }}
         uses: actions/download-artifact@v3
         with:
-          name: ${{ inputs.artifact_name }}  # Ensure this matches the artifact name in the main workflow
+          name: build-artifacts  # Ensure this matches the artifact name in the main workflow
 
       - name: Deploy Application
         run: |
