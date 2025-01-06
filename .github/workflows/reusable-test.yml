@@ -15,6 +15,9 @@ on:
         description: "The environment to deploy to"
         required: true
         type: string
+      run_id:   # This is added to receive the run_id of the deploy workflow
+        required: true
+        type: string
 
 jobs:
   test:
