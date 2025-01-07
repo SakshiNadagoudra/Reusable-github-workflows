@@ -1,109 +1,73 @@
-name: Build, Deploy, and Test Workflow
+name: Build and Deploy Java Application
 
 on:
   push:
     branches:
-      - feature-branch
-  workflow_dispatch:
+      - feature-branch  # Replace with your target branch
+    workflow_dispatch:
 
 jobs:
+  
+  # run-on-merge:
+  #   runs-on: ubuntu-latest
+  #   if: contains(github.event.head_commit.message, 'Merge pull request')  # Check if the commit is a PR merge
+  #   steps:
+  #     - name: Run on PR merge
+  #       run: echo "This workflow runs only when a pull request is merged."
+
+
   build:
     runs-on: ubuntu-latest
-    outputs:
-      artifact-name: build-artifacts
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
 
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          distribution: adopt
-          java-version: '11'
-
-      - name: Build with Maven
-        run: |
-          echo "Simulating Maven build..."
-          # mvn clean install
-          echo "Dummy build completed."
-
-      # - name: Upload Build Artifacts
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: build-artifacts
-      #     path: target/*.jar
-
-  deploy-and-test:
-    needs: build
-    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
       - name: Setup GitHub CLI
         run: |
+          echo "Setting up GitHub CLI"
           sudo apt-get update
           sudo apt-get install -y gh
-
       - name: Deploy and Test Sequentially with Approval
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}  # Set the GH_TOKEN environment variable
         run: |
-          ENVIRONMENTS=("sit" "uat" "prod")
+          # Define environments
+          ENVIRONMENTS=("dev" "sit" "prod")
+          # Loop through each environment
           for env in "${ENVIRONMENTS[@]}"; do
+            # Step 1: Trigger Deploy workflow for the current environment
             echo "====================================="
             echo "Triggering Deploy workflow for $env"
             echo "====================================="
-            
-            # Trigger Deploy workflow
-            gh workflow run reusable-deploy.yml --ref feature-branch -F environment=$env -F run_id=${{ github.run_id }}
-            sleep 10
-
-            run_id=$(gh run list --workflow reusable-deploy.yml --json databaseId,status --jq '.[0] | select(.status == "in_progress").databaseId')
-            if [ -z "$run_id" ]; then
-              echo "Failed to extract run_id for deploy workflow. Exiting."
-              exit 1
-            fi
-
-            echo "Triggered deploy workflow with run ID: $run_id"
-
-            # Wait for Deploy workflow to complete
+            gh workflow run reusable-deploy.yml --ref feature-branch -F environment=$env
             echo "Waiting for deploy workflow ($env) to complete..."
-            gh run watch "$run_id" --exit-status
-
-            # Check approval status for the environment
+            # Step 2: Wait for approval if environment is not 'dev'
             if [ "$env" != "dev" ]; then
               echo "====================================="
-              echo "Waiting for approval for $env"
+              echo "Waiting for manual approval for $env"
               echo "====================================="
-              while true; do
-                approval_status=$(gh api repos/${{ github.repository }}/actions/runs/"$deploy_run_id"/approvals -q '.[0].status')
-                if [ "$approval_status" == "approved" ]; then
-                  echo "Approval granted for $env. Proceeding to test."
-                  break
-                elif [ "$approval_status" == "rejected" ]; then
+              # GitHub will automatically pause here and wait for manual approval
+              # based on protection rules set for the 'sit' and 'prod' environments
+              # Monitor the approval status
+              APPROVAL_STATUS="pending"
+              while [ "$APPROVAL_STATUS" != "approved" ]; do
+                echo "Checking approval status for $env..."
+                # Check if approval has been given
+                APPROVAL_STATUS=$(gh api /repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/approvals | jq -r '.[0].status')
+                if [ "$APPROVAL_STATUS" == "rejected" ]; then
                   echo "Approval for $env was rejected. Stopping workflow."
                   exit 1
                 fi
-                echo "Approval for $env is pending. Checking again in 30 seconds..."
-                sleep 30  # Wait for 30 seconds before checking again
+                sleep 10  # Check every 10 seconds
               done
+              echo "Approval granted for $env."
             fi
-
-            # Trigger Test workflow after approval for the current environment
+            # Step 3: Trigger Test workflow for the current environment after approval
             echo "====================================="
             echo "Triggering Test workflow for $env"
             echo "====================================="
-            gh workflow run reusable-test.yml --ref feature-branch -F environment=$env -F run_id=$run_id
-            sleep 10
-
-            test_run_id=$(gh run list --workflow reusable-test.yml --json databaseId,status --jq '.[0] | select(.status == "in_progress").databaseId')
-            if [ -z "$test_run_id" ]; then
-              echo "Failed to extract test run_id. Exiting."
-              exit 1
-            fi
-
-            echo "Triggered test workflow with run ID: $test_run_id"
+            gh workflow run reusable-test.yml --ref feature-branch -F environment=$env
             echo "Waiting for test workflow ($env) to complete..."
-            gh run watch "$test_run_id" --exit-status
+            sleep 30  
           done

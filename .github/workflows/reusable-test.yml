@@ -7,18 +7,10 @@ on:
         description: "The environment to deploy to"
         required: true
         type: string
-      run_id:
-        description: "The ID of the build workflow run"
-        required: true
-        type: string
   workflow_dispatch:
     inputs:
       environment:
         description: "The environment to deploy to"
-        required: true
-        type: string
-      run_id:
-        description: "The ID of the build workflow run"
         required: true
         type: string
 
