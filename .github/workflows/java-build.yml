@@ -26,6 +26,7 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }} # Add GITHUB_TOKEN for authentication
           tag_name: "build-${{ github.run_id }}"
           release_name: "Build Artifacts ${{ github.run_id }}"
           draft: true
