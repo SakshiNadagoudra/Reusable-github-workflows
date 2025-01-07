@@ -56,7 +56,7 @@ jobs:
             echo "====================================="
             
             # Trigger Deploy workflow
-            deploy_output=$(gh workflow run reusable-deploy.yml --ref main -F environment=$env)
+            deploy_output=$(gh workflow run reusable-deploy.yml --ref main -F environment=$env run_id=${{ github.run_id }})
             echo "Deploy workflow triggered. Output:"
             echo "$deploy_output"
             
