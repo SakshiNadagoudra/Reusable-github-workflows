@@ -27,6 +27,12 @@ jobs:
           # mvn clean install
           echo "Dummy build completed."
 
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: target/*.jar
+
   deploy-and-test:
     needs: build
     runs-on: ubuntu-latest
@@ -40,44 +46,44 @@ jobs:
 
       - name: Deploy and Test Sequentially
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Pass the GitHub token for authentication
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           for env in $ENVIRONMENTS; do
             echo "====================================="
             echo "Triggering Deploy workflow for $env"
             echo "====================================="
             
-            # Trigger reusable deploy workflow
-            deploy_output=$(gh workflow run reusable-deploy.yml --ref feature-branch -F environment=$env)
-            echo "Deploy workflow triggered for $env. Output: $deploy_output"
-
-            echo "Waiting for deploy workflow to complete..."
-            # Simulate waiting for deploy completion
+            gh workflow run reusable-deploy.yml --ref feature-branch -F environment=$env -F run_id=${{ github.run_id }}
             sleep 10
-            echo "Deploy for $env completed."
 
-            # Only for environments other than 'dev', wait for approval
-            if [ "$env" != "dev" ]; then
-              echo "Waiting for approval to proceed with $env..."
-              approval_status="pending"
-              while [ "$approval_status" != "approved" ]; do
-                # Fetch approval status from the deploy workflow (use your preferred method to check approval)
-                approval_status="approved"  # Simulate approval (you will need to implement the actual check here)
-                echo "Approval status: $approval_status"
-                sleep 10  # Wait before checking again (to avoid constant polling)
-              done
-              echo "Approval granted for $env."
+            run_id=$(gh run list --workflow reusable-deploy.yml --json databaseId,status --jq '.[0] | select(.status == "in_progress").databaseId')
+            if [ -z "$run_id" ]; then
+              echo "Failed to extract run_id for deploy workflow. Exiting."
+              exit 1
             fi
 
-            # Trigger the test workflow after approval (for dev and other environments)
+            echo "Triggered deploy workflow with run ID: $run_id"
+            echo "Waiting for deploy workflow ($env) to complete..."
+            gh run watch "$run_id" --exit-status
+
+            if [ "$env" != "dev" ]; then
+              echo "Waiting for approval for $env..."
+              sleep 60  # Placeholder for manual approval logic
+            fi
+
             echo "====================================="
             echo "Triggering Test workflow for $env"
             echo "====================================="
-            test_output=$(gh workflow run reusable-test.yml --ref feature-branch -F environment=$env)
-            echo "Test workflow triggered for $env. Output: $test_output"
-
-            echo "Waiting for test workflow to complete..."
-            # Simulate waiting for test completion
+            gh workflow run reusable-test.yml --ref feature-branch -F environment=$env -F run_id=$run_id
             sleep 10
-            echo "Tests for $env completed successfully."
+
+            test_run_id=$(gh run list --workflow reusable-test.yml --json databaseId,status --jq '.[0] | select(.status == "in_progress").databaseId')
+            if [ -z "$test_run_id" ]; then
+              echo "Failed to extract test run_id. Exiting."
+              exit 1
+            fi
+
+            echo "Triggered test workflow with run ID: $test_run_id"
+            echo "Waiting for test workflow ($env) to complete..."
+            gh run watch "$test_run_id" --exit-status
           done
