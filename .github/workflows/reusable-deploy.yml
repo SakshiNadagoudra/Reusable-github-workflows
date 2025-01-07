@@ -25,14 +25,14 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Download Build Artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: build-artifacts
-          path: artifacts
+      # - name: Download Build Artifacts
+      #   uses: actions/download-artifact@v3
+      #   with:
+      #     name: build-artifacts
+      #     path: artifacts
 
       - name: Deploy Application
         run: |
           echo "Deploying to ${{ inputs.environment }} environment"
-          ls artifacts  # List downloaded artifacts
+          # ls artifacts  # List downloaded artifacts
           # Add deployment logic here
