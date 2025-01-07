@@ -31,6 +31,7 @@ jobs:
       - name: Output Run ID
         run: echo "run_id=${{ github.run_id }}" >> $GITHUB_ENV
 
+
   deploy-and-test:
     needs: build
     runs-on: ubuntu-latest
@@ -56,43 +57,41 @@ jobs:
             echo "====================================="
             
             # Trigger Deploy workflow
-            gh workflow run reusable-deploy.yml --ref main -F environment=$env
+            gh workflow run reusable-deploy.yml --ref main -F environment=$env -F run_id=${{ github.run_id }}
 
             # Wait for a short period to ensure the run is listed
             sleep 10
             
             # Extract the latest run ID for the deploy workflow
-            run_id=$(gh run list --workflow reusable-deploy.yml --json databaseId,status --jq '.[0] | select(.status == "in_progress").databaseId')
-            if [ -z "$run_id" ]; then
+            deploy_run_id=$(gh run list --workflow reusable-deploy.yml --json databaseId,status --jq '.[0] | select(.status == "in_progress").databaseId')
+            if [ -z "$deploy_run_id" ]; then
               echo "Failed to extract run_id for deploy workflow. Exiting."
               exit 1
             fi
 
-            echo "Triggered deploy workflow with run ID: $run_id"
+            echo "Triggered deploy workflow with run ID: $deploy_run_id"
 
             # Wait for Deploy workflow to complete
             echo "Waiting for deploy workflow ($env) to complete..."
-            gh run watch "$run_id" --exit-status
+            gh run watch "$deploy_run_id" --exit-status
 
             # Trigger Test workflow after deploy for the current environment
-            if [ "$env" == "dev" ]; then
-              echo "====================================="
-              echo "Triggering Test workflow for $env"
-              echo "====================================="
-              gh workflow run reusable-test.yml --ref main -F environment=$env -F run_id=$run_id
+            echo "====================================="
+            echo "Triggering Test workflow for $env"
+            echo "====================================="
+            gh workflow run reusable-test.yml --ref main -F environment=$env -F run_id=$deploy_run_id
 
-              # Wait for a short period to ensure the run is listed
-              sleep 10
+            # Wait for a short period to ensure the run is listed
+            sleep 10
 
-              # Extract the latest run ID for the test workflow
-              test_run_id=$(gh run list --workflow reusable-test.yml --json databaseId,status --jq '.[0] | select(.status == "in_progress").databaseId')
-              if [ -z "$test_run_id" ]; then
-                echo "Failed to extract test run_id. Exiting."
-                exit 1
-              fi
-
-              echo "Triggered test workflow with run ID: $test_run_id"
-              echo "Waiting for Test workflow ($env) to complete..."
-              gh run watch "$test_run_id" --exit-status
+            # Extract the latest run ID for the test workflow
+            test_run_id=$(gh run list --workflow reusable-test.yml --json databaseId,status --jq '.[0] | select(.status == "in_progress").databaseId')
+            if [ -z "$test_run_id" ]; then
+              echo "Failed to extract test run_id. Exiting."
+              exit 1
             fi
+
+            echo "Triggered test workflow with run ID: $test_run_id"
+            echo "Waiting for Test workflow ($env) to complete..."
+            gh run watch "$test_run_id" --exit-status
           done
