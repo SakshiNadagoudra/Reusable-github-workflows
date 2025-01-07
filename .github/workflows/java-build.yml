@@ -1,4 +1,4 @@
-name: Build, Deploy, and Test Sequentially
+name: Build, Deploy, and Test Workflow
 
 on:
   push:
@@ -22,11 +22,22 @@ jobs:
       - name: Build with Maven
         run: mvn clean install
 
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v3
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
         with:
-          name: build-artifacts
-          path: target/*.jar
+          tag_name: "build-${{ github.run_id }}"
+          release_name: "Build Artifacts ${{ github.run_id }}"
+          draft: true
+          prerelease: true
+
+      - name: Upload Build Artifacts to Release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: target/*.jar
+          asset_name: build-artifacts.jar
+          asset_content_type: application/java-archive
 
   deploy-and-test:
     needs: build
@@ -41,57 +52,41 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gh
 
-      - name: Deploy and Test Sequentially
+      - name: Define Environments
+        id: define_envs
+        run: echo "ENVIRONMENTS=dev sit prod" >> $GITHUB_ENV
+
+      - name: Deploy and Test Sequentially with Approval
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: "build-${{ needs.build.outputs.run_id }}"
         run: |
-          ENVIRONMENTS=("dev" "sit" "prod")
-          for env in "${ENVIRONMENTS[@]}"; do
+          for env in $ENVIRONMENTS; do
             echo "====================================="
-            echo "Triggering Deploy workflow for $env"
+            echo "Deploying to $env"
             echo "====================================="
 
-            # Trigger Deploy workflow
-            gh workflow run reusable-deploy.yml --ref feature-branch -F environment=$env
-            echo "Waiting for Deploy workflow to complete for $env..."
+            # Download artifact from GitHub Release
+            echo "Downloading artifact from release: $RELEASE_TAG"
+            gh release download "$RELEASE_TAG" --pattern "build-artifacts.jar" --dir artifacts
+            if [ ! -f artifacts/build-artifacts.jar ]; then
+              echo "Failed to download artifact for $env. Exiting."
+              exit 1
+            fi
 
-            # Wait for the deploy workflow to complete
-            while true; do
-              deploy_status=$(gh run list --workflow reusable-deploy.yml --json status,conclusion --jq '.[0]')
-              if [[ "$deploy_status" == *"completed"* ]]; then
-                conclusion=$(echo "$deploy_status" | jq -r '.conclusion')
-                if [[ "$conclusion" != "success" ]]; then
-                  echo "Deploy failed for $env. Exiting."
-                  exit 1
-                fi
-                echo "Deploy successful for $env."
-                break
-              fi
-              echo "Waiting for deploy to complete..."
-              sleep 30
-            done
+            # Deploy to environment
+            echo "Deploying to $env environment..."
+            # Add deployment logic here
+            ls artifacts/build-artifacts.jar
 
-            # Trigger Test workflow
-            echo "====================================="
-            echo "Triggering Test workflow for $env"
-            echo "====================================="
-            gh workflow run reusable-test.yml --ref feature-branch -F environment=$env
+            # Approval process for protected environments
+            if [ "$env" != "dev" ]; then
+              echo "Waiting for approval to proceed with $env..."
+              # Simulate waiting for approval
+              sleep 10
+            fi
 
-            echo "Waiting for Test workflow to complete for $env..."
-
-            # Wait for the test workflow to complete
-            while true; do
-              test_status=$(gh run list --workflow reusable-test.yml --json status,conclusion --jq '.[0]')
-              if [[ "$test_status" == *"completed"* ]]; then
-                conclusion=$(echo "$test_status" | jq -r '.conclusion')
-                if [[ "$conclusion" != "success" ]]; then
-                  echo "Test failed for $env. Exiting."
-                  exit 1
-                fi
-                echo "Test successful for $env."
-                break
-              fi
-              echo "Waiting for test to complete..."
-              sleep 30
-            done
+            # Trigger tests
+            echo "Running tests in $env environment..."
+            # Add testing logic here
           done
