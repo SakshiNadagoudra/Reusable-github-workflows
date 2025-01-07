@@ -7,6 +7,12 @@ on:
         description: "The environment to test in"
         required: true
         type: string
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "The environment to test in"
+        required: true
+        type: string
 
 jobs:
   test:
