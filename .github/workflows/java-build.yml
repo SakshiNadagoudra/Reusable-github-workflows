@@ -52,7 +52,7 @@ jobs:
             echo "====================================="
 
             # Trigger Deploy workflow
-            gh workflow run reusable-deploy.yml --ref main -F environment=$env
+            gh workflow run reusable-deploy.yml --ref feature-branch -F environment=$env
             echo "Waiting for Deploy workflow to complete for $env..."
 
             # Wait for the deploy workflow to complete
@@ -75,7 +75,7 @@ jobs:
             echo "====================================="
             echo "Triggering Test workflow for $env"
             echo "====================================="
-            gh workflow run reusable-test.yml --ref main -F environment=$env
+            gh workflow run reusable-test.yml --ref feature-branch -F environment=$env
 
             echo "Waiting for Test workflow to complete for $env..."
 
