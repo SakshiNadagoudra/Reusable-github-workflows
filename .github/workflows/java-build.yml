@@ -20,57 +20,42 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gh
 
-      - name: Deploy and Test Sequentially with Approval
-        env:
-          GH_TOKEN: ${{ github.token }}  # Set the GH_TOKEN environment variable
-        run: |
-          # Define environments
-          ENVIRONMENTS=("dev" "sit" "prod")
-          
-          # Loop through each environment
-          for env in "${ENVIRONMENTS[@]}"; do
-            # Step 1: Trigger Deploy workflow for the current environment
-            echo "====================================="
-            echo "Triggering Deploy workflow for $env"
-            echo "====================================="
-            deploy_output=$(gh workflow run reusable-deploy.yml --ref feature-branch -F environment=$env)
-            echo "$deploy_output"  # Debugging output to ensure the workflow is triggered
+          - name: Trigger deployments
+          env:
+            GH_TOKEN: ${{ github.token }}
+          run: |
+            environments=("dev" "sit" "uat" "prod")
             
-            echo "Waiting for deploy workflow ($env) to complete..."
-
-            # Step 2: Wait for approval if environment is not 'dev'
-            if [ "$env" != "dev" ]; then
-              echo "====================================="
-              echo "Waiting for manual approval for $env"
-              echo "====================================="
-              # GitHub will automatically pause here and wait for manual approval
-              # Monitor the approval status by checking the deployment status for environment
-              APPROVAL_STATUS="pending"
-              while [ "$APPROVAL_STATUS" == "pending" ]; do
-                # Query the deployment status API for the workflow run
-                approval_response=$(gh api /repos/${{ github.repository }}/actions/workflows/${{ github.workflow }}.yml/runs/${{ github.run_id }}/jobs)
-                APPROVAL_STATUS=$(echo "$approval_response" | jq -r '.[0].conclusion')
-
-                if [ "$APPROVAL_STATUS" == "success" ]; then
-                  echo "Approval granted for $env."
-                  break
-                fi
-
-                if [ "$APPROVAL_STATUS" == "failure" ]; then
-                  echo "Approval for $env was rejected. Stopping workflow."
+            for env in "${environments[@]}"; do
+              echo "Triggering deploy workflow for $env environment"
+              gh workflow run deploy.yml -f environment=$env --ref ${{ github.ref }}
+              
+              # Wait for workflow to complete
+              sleep 10  # Give time for workflow to start
+              run_id=$(gh run list --workflow=deploy.yml --limit=1 --json databaseId --jq '.[0].databaseId')
+              
+              echo "Waiting for deploy workflow (ID: $run_id) to complete..."
+              gh run watch $run_id
+              
+              if [ $? -eq 0 ]; then
+                echo "Deploy to $env completed successfully"
+                
+                echo "Triggering test workflow for $env environment"
+                gh workflow run test.yml -f environment=$env --ref ${{ github.ref }}
+                
+                # Wait for test workflow to complete
+                sleep 10
+                run_id=$(gh run list --workflow=test.yml --limit=1 --json databaseId --jq '.[0].databaseId')
+                
+                echo "Waiting for test workflow (ID: $run_id) to complete..."
+                gh run watch $run_id
+                
+                if [ $? -ne 0 ]; then
+                  echo "Tests failed for $env environment"
                   exit 1
                 fi
-
-                echo "Approval still pending for $env. Retrying..."
-                sleep 30  # Check every 30 seconds
-              done
-            fi
-
-            # Step 3: Trigger Test workflow for the current environment after approval
-            echo "====================================="
-            echo "Triggering Test workflow for $env"
-            echo "====================================="
-            gh workflow run reusable-test.yml --ref feature-branch -F environment=$env
-            echo "Waiting for test workflow ($env) to complete..."
-            sleep 30  # Wait for test workflow to finish
-          done
+              else
+                echo "Deploy failed for $env environment"
+                exit 1
+              fi
+            done
