@@ -20,10 +20,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gh
 
-          - name: Trigger deployments
-          env:
-            GH_TOKEN: ${{ github.token }}
-          run: |
+      - name: Trigger deployments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
             environments=("dev" "sit" "uat" "prod")
             
             for env in "${environments[@]}"; do
