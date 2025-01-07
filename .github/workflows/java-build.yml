@@ -51,7 +51,7 @@ jobs:
             echo "====================================="
             
             # Trigger Deploy workflow
-            deploy_output=$(gh workflow run reusable-deploy.yml --ref main -F environment=$env -F run_id=${{ github.run_id }})
+            deploy_output=$(gh workflow run reusable-deploy.yml --ref feature-branch -F environment=$env -F run_id=${{ github.run_id }})
             echo "Deploy workflow triggered. Output:"
             echo "$deploy_output"
 
@@ -91,7 +91,7 @@ jobs:
             echo "====================================="
             echo "Triggering Test workflow for $env"
             echo "====================================="
-            test_output=$(gh workflow run reusable-test.yml --ref main -F environment=$env -F run_id=${{ github.run_id }})
+            test_output=$(gh workflow run reusable-test.yml --ref feature-branch -F environment=$env -F run_id=${{ github.run_id }})
             test_run_id=$(echo "$test_output" | grep -oP '(?<=actions/runs/)\d+')
             echo "Test workflow triggered. Output:"
             echo "$test_output"
