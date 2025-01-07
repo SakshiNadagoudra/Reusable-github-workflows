@@ -27,13 +27,6 @@ jobs:
           # mvn clean install
           echo "Dummy build completed."
 
-      # - name: Upload Build Artifacts
-      #   id: upload_artifacts
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: build-artifacts
-      #     path: target/*.jar
-
   deploy-and-test:
     needs: build
     runs-on: ubuntu-latest
@@ -41,17 +34,19 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      - name: Define Environments
+        id: define_envs
+        run: echo "ENVIRONMENTS=dev sit uat prod" >> $GITHUB_ENV
+
       - name: Setup GitHub CLI
         run: |
           echo "Setting up GitHub CLI"
           sudo apt-get update
           sudo apt-get install -y gh
 
-      - name: Define Environments
-        id: define_envs
-        run: echo "ENVIRONMENTS=dev sit prod" >> $GITHUB_ENV
-
       - name: Deploy and Test Sequentially
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Pass the GitHub token for authentication
         run: |
           for env in $ENVIRONMENTS; do
             echo "====================================="
