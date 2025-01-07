@@ -48,48 +48,49 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          ENVIRONMENTS=("dev" "sit" "prod")
-          for env in "${ENVIRONMENTS[@]}"; do
-            echo "====================================="
-            echo "Triggering Deploy workflow for $env"
-            echo "====================================="
-            
-            # Trigger Deploy workflow and capture output
-            deploy_output=$(gh workflow run reusable-deploy.yml --ref main -F environment=$env -F run_id=$GITHUB_RUN_ID)
-            echo "Deploy workflow triggered. Output:"
-            echo "$deploy_output"
-            
-            # Extract run_id from the deploy_output
-            run_id=$(echo "$deploy_output" | grep -oP '(?<=https://github.com/.*/actions/runs/)\d+')
-            if [ -z "$run_id" ]; then
-              echo "Failed to extract run_id for deploy workflow. Exiting."
-              exit 1
-            fi
-
-            echo "Triggered deploy workflow with run ID: $run_id"
-
-            # Wait for Deploy workflow to complete
-            echo "Waiting for deploy workflow ($env) to complete..."
-            gh run watch "$run_id" --exit-status
-
-            # Trigger Test workflow after deploy for the current environment
-            if [ "$env" == "dev" ]; then
+            ENVIRONMENTS=("dev" "sit" "prod")
+            for env in "${ENVIRONMENTS[@]}"; do
               echo "====================================="
-              echo "Triggering Test workflow for $env"
+              echo "Triggering Deploy workflow for $env"
               echo "====================================="
-              test_output=$(gh workflow run reusable-test.yml --ref main -F environment=$env -F run_id=$run_id)
-              echo "Test workflow triggered. Output:"
-              echo "$test_output"
-
-              # Extract test_run_id from the test_output
-              test_run_id=$(echo "$test_output" | grep -oP '(?<=https://github.com/.*/actions/runs/)\d+')
-              if [ -z "$test_run_id" ]; then
-                echo "Failed to extract test run_id. Exiting."
+              
+              # Trigger Deploy workflow and capture output
+              deploy_output=$(gh workflow run reusable-deploy.yml --ref main -F environment=$env -F run_id=$GITHUB_RUN_ID)
+              echo "Deploy workflow triggered. Output:"
+              echo "$deploy_output"
+              
+              # Extract run_id using awk
+              run_id=$(echo "$deploy_output" | awk -F'/actions/runs/' '{print $2}' | awk '{print $1}')
+              if [ -z "$run_id" ]; then
+                echo "Failed to extract run_id for deploy workflow. Exiting."
                 exit 1
               fi
-
-              echo "Triggered test workflow with run ID: $test_run_id"
-              echo "Waiting for Test workflow ($env) to complete..."
-              gh run watch "$test_run_id" --exit-status
-            fi
-          done
+        
+              echo "Triggered deploy workflow with run ID: $run_id"
+        
+              # Wait for Deploy workflow to complete
+              echo "Waiting for deploy workflow ($env) to complete..."
+              gh run watch "$run_id" --exit-status
+        
+              # Trigger Test workflow after deploy for the current environment
+              if [ "$env" == "dev" ]; then
+                echo "====================================="
+                echo "Triggering Test workflow for $env"
+                echo "====================================="
+                test_output=$(gh workflow run reusable-test.yml --ref main -F environment=$env -F run_id=$run_id)
+                echo "Test workflow triggered. Output:"
+                echo "$test_output"
+        
+                # Extract test_run_id using awk
+                test_run_id=$(echo "$test_output" | awk -F'/actions/runs/' '{print $2}' | awk '{print $1}')
+                if [ -z "$test_run_id" ]; then
+                  echo "Failed to extract test run_id. Exiting."
+                  exit 1
+                fi
+        
+                echo "Triggered test workflow with run ID: $test_run_id"
+                echo "Waiting for Test workflow ($env) to complete..."
+                gh run watch "$test_run_id" --exit-status
+              fi
+            done
+        
