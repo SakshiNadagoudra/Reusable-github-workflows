@@ -1,4 +1,4 @@
-name: Build Java Application
+name: Build, Deploy, and Test Sequentially
 
 on:
   push:
@@ -28,9 +28,6 @@ jobs:
           name: build-artifacts
           path: target/*.jar
 
-      - name: Output Run ID
-        run: echo "run_id=${{ github.run_id }}" >> $GITHUB_ENV
-
   deploy-and-test:
     needs: build
     runs-on: ubuntu-latest
@@ -44,65 +41,57 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gh
 
-      - name: Deploy and Test Sequentially with Approval
+      - name: Deploy and Test Sequentially
         env:
-          GH_TOKEN: ${{ github.token }}  # Set the GH_TOKEN environment variable
+          GH_TOKEN: ${{ github.token }}
         run: |
-          # Define environments
           ENVIRONMENTS=("dev" "sit" "prod")
           for env in "${ENVIRONMENTS[@]}"; do
             echo "====================================="
             echo "Triggering Deploy workflow for $env"
             echo "====================================="
-            
+
             # Trigger Deploy workflow
-            deploy_output=$(gh workflow run reusable-deploy.yml --ref main -F environment=$env run_id=${{ github.run_id }})
-            echo "Deploy workflow triggered. Output:"
-            echo "$deploy_output"
-            
-            # Wait for a short period to ensure the run is listed
-            sleep 10
-            
-            # Debugging step to list recent runs
-            echo "Listing recent runs for reusable-deploy.yml"
-            gh run list --workflow reusable-deploy.yml --limit 5
+            gh workflow run reusable-deploy.yml --ref main -F environment=$env
+            echo "Waiting for Deploy workflow to complete for $env..."
 
-            # Extract the latest run ID for the deploy workflow
-            run_id=$(gh run list --workflow reusable-deploy.yml --json databaseId,status --jq '.[0] | select(.status == "in_progress").databaseId')
-            if [ -z "$run_id" ]; then
-              echo "Failed to extract run_id for deploy workflow. Exiting."
-              exit 1
-            fi
+            # Wait for the deploy workflow to complete
+            while true; do
+              deploy_status=$(gh run list --workflow reusable-deploy.yml --json status,conclusion --jq '.[0]')
+              if [[ "$deploy_status" == *"completed"* ]]; then
+                conclusion=$(echo "$deploy_status" | jq -r '.conclusion')
+                if [[ "$conclusion" != "success" ]]; then
+                  echo "Deploy failed for $env. Exiting."
+                  exit 1
+                fi
+                echo "Deploy successful for $env."
+                break
+              fi
+              echo "Waiting for deploy to complete..."
+              sleep 30
+            done
 
-            echo "Triggered deploy workflow with run ID: $run_id"
-
-            # Wait for Deploy workflow to complete
-            echo "Waiting for deploy workflow ($env) to complete..."
-            gh run watch "$run_id" --exit-status
-
-            # Trigger Test workflow after deploy for the current environment
+            # Trigger Test workflow
             echo "====================================="
             echo "Triggering Test workflow for $env"
             echo "====================================="
-            test_output=$(gh workflow run reusable-test.yml --ref main -F environment=$env -F run_id=$run_id)
-            echo "Test workflow triggered. Output:"
-            echo "$test_output"
-            
-            # Wait for a short period to ensure the run is listed
-            sleep 10
+            gh workflow run reusable-test.yml --ref main -F environment=$env
 
-            # Debugging step to list recent runs
-            echo "Listing recent runs for reusable-test.yml"
-            gh run list --workflow reusable-test.yml --limit 5
+            echo "Waiting for Test workflow to complete for $env..."
 
-            # Extract the latest run ID for the test workflow
-            test_run_id=$(gh run list --workflow reusable-test.yml --json databaseId,status --jq '.[0] | select(.status == "in_progress").databaseId')
-            if [ -z "$test_run_id" ]; then
-              echo "Failed to extract test run_id. Exiting."
-              exit 1
-            fi
-
-            echo "Triggered test workflow with run ID: $test_run_id"
-            echo "Waiting for Test workflow ($env) to complete..."
-            gh run watch "$test_run_id" --exit-status
+            # Wait for the test workflow to complete
+            while true; do
+              test_status=$(gh run list --workflow reusable-test.yml --json status,conclusion --jq '.[0]')
+              if [[ "$test_status" == *"completed"* ]]; then
+                conclusion=$(echo "$test_status" | jq -r '.conclusion')
+                if [[ "$conclusion" != "success" ]]; then
+                  echo "Test failed for $env. Exiting."
+                  exit 1
+                fi
+                echo "Test successful for $env."
+                break
+              fi
+              echo "Waiting for test to complete..."
+              sleep 30
+            done
           done

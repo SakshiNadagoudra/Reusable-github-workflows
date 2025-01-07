@@ -1,0 +1,29 @@
+name: Reusable Test Workflow
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "The environment to test in"
+        required: true
+        type: string
+
+jobs:
+  test:
+    name: Test in ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Run Tests
+        run: |
+          echo "Running tests in ${{ inputs.environment }}"
+          echo "This is a dummy test report for the POC." > test-report.txt
+
+      - name: Upload Test Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-report
+          path: test-report.txt
