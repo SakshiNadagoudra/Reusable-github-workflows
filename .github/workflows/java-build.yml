@@ -55,9 +55,17 @@ jobs:
             echo "Deploy workflow triggered. Output:"
             echo "$deploy_output"
 
+            # Extract deploy run_id from the deploy output
+            deploy_run_id=$(echo "$deploy_output" | grep -oP '(?<=actions/runs/)\d+')
+            if [ -z "$deploy_run_id" ]; then
+              echo "Failed to extract deploy run_id. Exiting."
+              exit 1
+            fi
+
+            echo "Deploy workflow triggered with run ID: $deploy_run_id"
+
             # Wait for Deploy workflow to complete (using the status of the deploy workflow)
             echo "Waiting for deploy workflow ($env) to complete..."
-            deploy_run_id=$(echo "$deploy_output" | grep -oP '(?<=actions/runs/)\d+')
             gh run watch "$deploy_run_id" --exit-status
 
             # Check approval status for the environment
