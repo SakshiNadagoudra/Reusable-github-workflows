@@ -1,83 +1,38 @@
-name: Build, Deploy, and Test Workflow
+name: Reusable Deploy Workflow
 
 on:
-  push:
-    branches:
-      - feature-branch
+  workflow_call:
+    inputs:
+      environment:
+        description: "The environment to deploy to"
+        required: true
+        type: string
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "The environment to deploy to"
+        required: true
+        type: string
 
 jobs:
-  build:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    outputs:
-      artifact-name: build-artifacts
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+    environment:
+      name: ${{ inputs.environment }} # Use environment protection if enabled
 
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          distribution: adopt
-          java-version: '11'
-
-      - name: Build with Maven
-        run: |
-          echo "Simulating Maven build..."
-          # mvn clean install
-          echo "Dummy build completed."
-
-  deploy-and-test:
-    needs: build
-    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Define Environments
-        id: define_envs
-        run: echo "ENVIRONMENTS=dev sit uat prod" >> $GITHUB_ENV
+      # - name: Download Build Artifacts
+      #   uses: actions/download-artifact@v3
+      #   with:
+      #     name: build-artifacts
+      #     path: artifacts
 
-      - name: Deploy and Test Sequentially
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Pass the GitHub token for authentication
+      - name: Deploy Application
         run: |
-          for env in $ENVIRONMENTS; do
-            echo "====================================="
-            echo "Triggering Deploy workflow for $env"
-            echo "====================================="
-            
-            # Trigger reusable deploy workflow
-            deploy_output=$(gh workflow run reusable-deploy.yml --ref feature-branch -F environment=$env)
-            echo "Deploy workflow triggered for $env."
-
-            echo "Waiting for deploy workflow to complete..."
-            sleep 10
-            echo "Deploy for $env completed."
-
-            # Only for environments other than 'dev', wait for approval
-            if [ "$env" != "dev" ]; then
-              approval_status="pending"
-              
-              # Polling for approval status, check every 5 minutes (300 seconds)
-              while [ "$approval_status" != "approved" ]; do
-                # Simulate approval status check (you need to replace with actual logic)
-                approval_status="approved"  # Simulate approval granted
-                if [ "$approval_status" == "approved" ]; then
-                  break
-                fi
-                sleep 300  # Wait for 5 minutes before checking again
-              done
-            fi
-
-            # Trigger the test workflow after approval (for dev and other environments)
-            echo "====================================="
-            echo "Triggering Test workflow for $env"
-            echo "====================================="
-            test_output=$(gh workflow run reusable-test.yml --ref feature-branch -F environment=$env)
-            echo "Test workflow triggered for $env."
-
-            echo "Waiting for test workflow to complete..."
-            sleep 10
-            echo "Tests for $env completed successfully."
-          done
+          echo "Deploying to ${{ inputs.environment }} environment"
+          # ls artifacts  # List downloaded artifacts
+          # Add deployment logic here
