@@ -27,6 +27,12 @@ jobs:
           # mvn clean install
           echo "Dummy build completed."
 
+      # - name: Upload Build Artifacts
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: build-artifacts
+      #     path: target/*.jar
+
   deploy-and-test:
     needs: build
     runs-on: ubuntu-latest
@@ -36,37 +42,34 @@ jobs:
 
       - name: Setup GitHub CLI
         run: |
-          echo "Setting up GitHub CLI"
           sudo apt-get update
           sudo apt-get install -y gh
 
       - name: Deploy and Test Sequentially with Approval
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ENVIRONMENTS=("dev" "sit" "uat" "prod")
+          ENVIRONMENTS=("sit" "uat" "prod")
           for env in "${ENVIRONMENTS[@]}"; do
             echo "====================================="
             echo "Triggering Deploy workflow for $env"
             echo "====================================="
             
-            # Trigger Deploy workflow without passing run_id
-            deploy_output=$(gh workflow run reusable-deploy.yml --ref feature-branch -F environment=$env)
-            echo "Deploy workflow triggered. Output:"
-            echo "$deploy_output"
+            # Trigger Deploy workflow
+            gh workflow run reusable-deploy.yml --ref feature-branch -F environment=$env -F run_id=${{ github.run_id }}
+            sleep 10
 
-            # Extract deploy run_id from the deploy output
-            deploy_run_id=$(echo "$deploy_output" | grep -oP '(?<=actions/runs/)\d+')
-            if [ -z "$deploy_run_id" ]; then
-              echo "Failed to extract deploy run_id. Exiting."
+            run_id=$(gh run list --workflow reusable-deploy.yml --json databaseId,status --jq '.[0] | select(.status == "in_progress").databaseId')
+            if [ -z "$run_id" ]; then
+              echo "Failed to extract run_id for deploy workflow. Exiting."
               exit 1
             fi
 
-            echo "Deploy workflow triggered with run ID: $deploy_run_id"
+            echo "Triggered deploy workflow with run ID: $run_id"
 
-            # Wait for Deploy workflow to complete (using the status of the deploy workflow)
+            # Wait for Deploy workflow to complete
             echo "Waiting for deploy workflow ($env) to complete..."
-            gh run watch "$deploy_run_id" --exit-status
+            gh run watch "$run_id" --exit-status
 
             # Check approval status for the environment
             if [ "$env" != "dev" ]; then
@@ -91,13 +94,16 @@ jobs:
             echo "====================================="
             echo "Triggering Test workflow for $env"
             echo "====================================="
-            test_output=$(gh workflow run reusable-test.yml --ref feature-branch -F environment=$env)
-            test_run_id=$(echo "$test_output" | grep -oP '(?<=actions/runs/)\d+')
-            echo "Test workflow triggered. Output:"
-            echo "$test_output"
+            gh workflow run reusable-test.yml --ref feature-branch -F environment=$env -F run_id=$run_id
+            sleep 10
 
-            # Wait for the Test workflow to complete
+            test_run_id=$(gh run list --workflow reusable-test.yml --json databaseId,status --jq '.[0] | select(.status == "in_progress").databaseId')
+            if [ -z "$test_run_id" ]; then
+              echo "Failed to extract test run_id. Exiting."
+              exit 1
+            fi
+
+            echo "Triggered test workflow with run ID: $test_run_id"
             echo "Waiting for test workflow ($env) to complete..."
             gh run watch "$test_run_id" --exit-status
           done
-
