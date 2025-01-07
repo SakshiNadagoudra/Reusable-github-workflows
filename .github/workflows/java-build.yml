@@ -28,11 +28,11 @@ jobs:
             
             for env in "${environments[@]}"; do
               echo "Triggering deploy workflow for $env environment"
-              gh workflow run deploy.yml -f environment=$env --ref ${{ github.ref }}
+              gh workflow run reusable-deploy.yml -f environment=$env --ref ${{ github.ref }}
               
               # Wait for workflow to complete
               sleep 10  # Give time for workflow to start
-              run_id=$(gh run list --workflow=deploy.yml --limit=1 --json databaseId --jq '.[0].databaseId')
+              run_id=$(gh run list --workflow=reusable-deploy.yml --limit=1 --json databaseId --jq '.[0].databaseId')
               
               echo "Waiting for deploy workflow (ID: $run_id) to complete..."
               gh run watch $run_id
@@ -41,11 +41,11 @@ jobs:
                 echo "Deploy to $env completed successfully"
                 
                 echo "Triggering test workflow for $env environment"
-                gh workflow run test.yml -f environment=$env --ref ${{ github.ref }}
+                gh workflow run reusable-test.yml -f environment=$env --ref ${{ github.ref }}
                 
                 # Wait for test workflow to complete
                 sleep 10
-                run_id=$(gh run list --workflow=test.yml --limit=1 --json databaseId --jq '.[0].databaseId')
+                run_id=$(gh run list --workflow=reusable-test.yml --limit=1 --json databaseId --jq '.[0].databaseId')
                 
                 echo "Waiting for test workflow (ID: $run_id) to complete..."
                 gh run watch $run_id
