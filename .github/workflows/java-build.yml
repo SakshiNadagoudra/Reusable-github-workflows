@@ -47,9 +47,11 @@ jobs:
               # Monitor the approval status by checking the deployment status for environment
               APPROVAL_STATUS="pending"
               while [ "$APPROVAL_STATUS" == "pending" ]; do
-                # Check approval status using GitHub API
-                APPROVAL_STATUS=$(gh api /repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/status | jq -r '.status')
-                if [ "$APPROVAL_STATUS" == "completed" ]; then
+                # Query the deployment status API for the workflow run
+                approval_response=$(gh api /repos/${{ github.repository }}/actions/workflows/${{ github.workflow }}.yml/runs/${{ github.run_id }}/jobs)
+                APPROVAL_STATUS=$(echo "$approval_response" | jq -r '.[0].conclusion')
+
+                if [ "$APPROVAL_STATUS" == "success" ]; then
                   echo "Approval granted for $env."
                   break
                 fi
