@@ -25,36 +25,38 @@ jobs:
         env:
             GH_TOKEN: ${{ github.token }}
         run: |
-            environments=("dev" "sit" "uat" "prod")
-            
-            for env in "${environments[@]}"; do
-              echo "Starting deployment to $env environment"
+              environments=("dev" "sit" "uat" "prod")
               
-              # Trigger deploy workflow
-              gh workflow run deploy.yml -f environment=$env --ref feature-branch
-              
-              if [ $? -ne 0 ]; then
-                echo "Error: Failed to trigger deploy workflow for $env environment."
-                exit 1
-              fi
-              
-              sleep 10  # Wait for workflow to start
-        
-              # Get the run ID
-              run_id=$(gh run list --workflow=deploy.yml --limit=1 --json databaseId --jq '.[0].databaseId')
-              
-              if [ -z "$run_id" ]; then
-                echo "Error: Unable to retrieve the run ID for deploy workflow in $env environment."
-                exit 1
-              fi
-        
-              echo "Waiting for deploy workflow (ID: $run_id) to complete..."
-              gh run watch $run_id --exit-status
-              
-              if [ $? -ne 0 ]; then
-                echo "Deploy failed for $env environment."
-                exit 1
-              fi
-              echo "✓ Deploy to $env completed successfully."
-            done
-        
+              for env in "${environments[@]}"; do
+                echo "Triggering deploy workflow for $env environment"
+                gh workflow run reusable-deploy.yml -f environment=$env --ref ${{ github.ref }}
+                
+                # Wait for workflow to complete
+                sleep 10  # Give time for workflow to start
+                run_id=$(gh run list --workflow=reusable-deploy.yml --limit=1 --json databaseId --jq '.[0].databaseId')
+                
+                echo "Waiting for deploy workflow (ID: $run_id) to complete..."
+                gh run watch $run_id
+                
+                if [ $? -eq 0 ]; then
+                  echo "Deploy to $env completed successfully"
+                  
+                  echo "Triggering test workflow for $env environment"
+                  gh workflow run reusable-test.yml -f environment=$env --ref ${{ github.ref }}
+                  
+                  # Wait for test workflow to complete
+                  sleep 10
+                  run_id=$(gh run list --workflow=reusable-test.yml --limit=1 --json databaseId --jq '.[0].databaseId')
+                  
+                  echo "Waiting for test workflow (ID: $run_id) to complete..."
+                  gh run watch $run_id
+                  
+                  if [ $? -ne 0 ]; then
+                    echo "Tests failed for $env environment"
+                    exit 1
+                  fi
+                else
+                  echo "Deploy failed for $env environment"
+                  exit 1
+                fi
+              done
