@@ -31,7 +31,7 @@ jobs:
               echo "Starting deployment to $env environment"
               
               # Trigger deploy workflow
-              gh workflow run reusable-deploy.yml -f environment=$env --ref ${{ github.ref }}
+              gh workflow run deploy.yml -f environment=$env --ref ${{ github.ref }}
               
               if [ $? -ne 0 ]; then
                 echo "Error: Failed to trigger deploy workflow for $env environment."
@@ -41,7 +41,7 @@ jobs:
               sleep 10  # Wait for workflow to start
         
               # Get the run ID
-              run_id=$(gh run list --workflow=reusable-deploy.yml --limit=1 --json databaseId --jq '.[0].databaseId')
+              run_id=$(gh run list --workflow=deploy.yml --limit=1 --json databaseId --jq '.[0].databaseId')
               
               if [ -z "$run_id" ]; then
                 echo "Error: Unable to retrieve the run ID for deploy workflow in $env environment."
