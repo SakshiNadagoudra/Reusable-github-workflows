@@ -25,17 +25,28 @@ jobs:
         env:
             GH_TOKEN: ${{ github.token }}
         run: |
+            # First, list available workflows to get their IDs
+            echo "Available workflows:"
+            gh workflow list
+            
+            # Get workflow IDs
+            deploy_workflow_id=$(gh workflow list | grep "Reusable Deploy Workflow" | awk '{print $4}')
+            test_workflow_id=$(gh workflow list | grep "Reusable Test Workflow" | awk '{print $4}')
+            
+            echo "Deploy Workflow ID: $deploy_workflow_id"
+            echo "Test Workflow ID: $test_workflow_id"
+            
             environments=("dev" "sit" "uat" "prod")
             
             for env in "${environments[@]}"; do
               echo "Starting deployment to $env environment"
               
-              # Trigger deploy workflow with simplified path
-              gh workflow run deploy.yml -f environment=$env -r feature-branch
+              # Trigger deploy workflow using workflow ID
+              gh workflow run "$deploy_workflow_id" -f environment=$env -r feature-branch
               sleep 10  # Wait for workflow to start
               
               # Get the run ID from the latest workflow run
-              run_id=$(gh run list --workflow=deploy.yml --limit 1 | awk 'NR==1{print $7}')
+              run_id=$(gh run list --workflow="$deploy_workflow_id" --limit 1 | awk 'NR==1{print $7}')
               echo "Deployment started with Run ID: $run_id"
               
               # Wait for deployment completion or approval
@@ -60,11 +71,11 @@ jobs:
               
               # Only proceed with tests if deployment was successful
               echo "Starting tests for $env environment"
-              gh workflow run test.yml -f environment=$env -r feature-branch
+              gh workflow run "$test_workflow_id" -f environment=$env -r feature-branch
               sleep 10
               
               # Get the test run ID
-              test_run_id=$(gh run list --workflow=test.yml --limit 1 | awk 'NR==1{print $7}')
+              test_run_id=$(gh run list --workflow="$test_workflow_id" --limit 1 | awk 'NR==1{print $7}')
               echo "Test started with Run ID: $test_run_id"
               
               # Wait for test completion
