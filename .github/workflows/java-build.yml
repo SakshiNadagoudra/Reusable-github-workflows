@@ -29,7 +29,7 @@ jobs:
               
               for env in "${environments[@]}"; do
                 echo "Triggering deploy workflow for $env environment"
-                gh workflow run reusable-deploy.yml -f environment=$env --ref ${{ github.ref }}
+                gh workflow run reusable-deploy.yml -f environment=$env --ref ${{ github.ref }} > /dev/null 2>&1
                 
                 # Wait for workflow to complete
                 sleep 10  # Give time for workflow to start
@@ -42,7 +42,7 @@ jobs:
                   echo "Deploy to $env completed successfully"
                   
                   echo "Triggering test workflow for $env environment"
-                  gh workflow run reusable-test.yml -f environment=$env --ref ${{ github.ref }}
+                  gh workflow run reusable-test.yml -f environment=$env --ref ${{ github.ref }} > /dev/null 2>&1
                   
                   # Wait for test workflow to complete
                   sleep 10
