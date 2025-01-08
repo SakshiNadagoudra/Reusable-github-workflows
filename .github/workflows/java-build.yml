@@ -20,7 +20,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gh
 
-      - name: Trigger deployments
+      - name: Deploy and Test Environments
         env:
             GH_TOKEN: ${{ github.token }}
         run: |
@@ -29,35 +29,50 @@ jobs:
             for env in "${environments[@]}"; do
               echo "Starting deployment to $env environment"
               
-              # Trigger deploy workflow
-              gh workflow run deploy.yml -f environment=$env --ref ${{ github.ref }}
-              echo "Triggered deployment for $env"
+              # Trigger deploy workflow and capture the run ID
+              run_output=$(gh workflow run .github/workflows/deploy.yml -f environment=$env -r feature-branch)
+              echo "$run_output"
+              sleep 10  # Wait for workflow to start
               
-              # Simple wait loop
+              # Get the run ID from the latest workflow run
+              run_id=$(gh run list --workflow=deploy.yml --limit 1 | awk 'NR==1{print $7}')
+              echo "Deployment started with Run ID: $run_id"
+              
+              # Wait for deployment completion or approval
               while true; do
-                # Get status of latest run
-                if gh run list --workflow=deploy.yml --limit 1 | grep -q "completed"; then
-                  if gh run list --workflow=deploy.yml --limit 1 | grep -q "success"; then
+                status=$(gh run view "$run_id" --json status -q '.status')
+                if [ "$status" = "completed" ]; then
+                  conclusion=$(gh run view "$run_id" --json conclusion -q '.conclusion')
+                  if [ "$conclusion" = "success" ]; then
                     echo "✓ Deploy to $env completed successfully"
                     break
                   else
-                    echo "✗ Deploy to $env failed"
+                    echo "✗ Deploy to $env failed or was cancelled"
                     exit 1
                   fi
+                elif [ "$status" = "waiting" ]; then
+                  echo "Waiting for environment approval in $env..."
+                else
+                  echo "Deployment in progress..."
                 fi
-                echo "Waiting for deploy to complete..."
-                sleep 10
+                sleep 20
               done
               
+              # Only proceed with tests if deployment was successful
               echo "Starting tests for $env environment"
-              gh workflow run test.yml -f environment=$env --ref ${{ github.ref }}
-              echo "Triggered tests for $env"
+              gh workflow run .github/workflows/test.yml -f environment=$env -r feature-branch
+              sleep 10
               
-              # Simple wait loop for tests
+              # Get the test run ID
+              test_run_id=$(gh run list --workflow=test.yml --limit 1 | awk 'NR==1{print $7}')
+              echo "Test started with Run ID: $test_run_id"
+              
+              # Wait for test completion
               while true; do
-                # Get status of latest run
-                if gh run list --workflow=test.yml --limit 1 | grep -q "completed"; then
-                  if gh run list --workflow=test.yml --limit 1 | grep -q "success"; then
+                status=$(gh run view "$test_run_id" --json status -q '.status')
+                if [ "$status" = "completed" ]; then
+                  conclusion=$(gh run view "$test_run_id" --json conclusion -q '.conclusion')
+                  if [ "$conclusion" = "success" ]; then
                     echo "✓ Tests for $env completed successfully"
                     break
                   else
@@ -65,10 +80,9 @@ jobs:
                     exit 1
                   fi
                 fi
-                echo "Waiting for tests to complete..."
-                sleep 10
+                echo "Tests in progress..."
+                sleep 20
               done
               
               echo "----------------------------------------"
             done
-  
