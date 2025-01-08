@@ -30,8 +30,8 @@ jobs:
             gh workflow list
         
             # Correctly fetch workflow IDs
-            deploy_workflow_id=$(gh workflow list | grep "Reusable Deploy Workflow" | awk '{print $3}')
-            test_workflow_id=$(gh workflow list | grep "Reusable Test Workflow" | awk '{print $3}')
+            deploy_workflow_id=$(gh workflow list | grep "Reusable Deploy Workflow" | awk '{print $5}')
+            test_workflow_id=$(gh workflow list | grep "Reusable Test Workflow" | awk '{print $5}')
         
             echo "Deploy Workflow ID: $deploy_workflow_id"
             echo "Test Workflow ID: $test_workflow_id"
