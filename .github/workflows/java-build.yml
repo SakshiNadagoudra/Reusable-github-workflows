@@ -31,7 +31,7 @@ jobs:
               echo "Starting deployment to $env environment"
               
               # Trigger deploy workflow
-              gh workflow run deploy.yml -f environment=$env --ref ${{ github.ref }}
+              gh workflow run deploy.yml -f environment=$env --ref feature-branch
               
               if [ $? -ne 0 ]; then
                 echo "Error: Failed to trigger deploy workflow for $env environment."
