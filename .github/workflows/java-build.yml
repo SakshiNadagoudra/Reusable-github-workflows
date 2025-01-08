@@ -22,71 +22,53 @@ jobs:
 
       - name: Trigger deployments
         env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
+            GH_TOKEN: ${{ github.token }}
         run: |
             environments=("dev" "sit" "uat" "prod")
             
             for env in "${environments[@]}"; do
               echo "Starting deployment to $env environment"
               
-              # Trigger deploy workflow and get run ID
-              gh workflow run reusable-deploy.yml -f environment=$env --ref ${{ github.ref }}
-              sleep 5  # Wait for workflow to start
+              # Trigger deploy workflow
+              gh workflow run deploy.yml -f environment=$env --ref ${{ github.ref }}
+              echo "Triggered deployment for $env"
               
-              # Get the latest run ID and wait for completion
-              until [ "$status" = "completed" ]; do
-                run_info=$(gh api repos/$REPO/actions/runs --jq ".workflow_runs[] | select(.name == \"Reusable Deploy Workflow\") | select(.status != \"completed\") | {id, status}" | head -n 1)
-                run_id=$(echo "$run_info" | grep -o '"id": [0-9]*' | cut -d' ' -f2)
-                status=$(echo "$run_info" | grep -o '"status": "[^"]*"' | cut -d'"' -f4)
-                
-                if [ -n "$run_id" ]; then
-                  echo "Waiting for deploy to $env (Run ID: $run_id)..."
-                  sleep 10
-                else
-                  status="completed"
+              # Simple wait loop
+              while true; do
+                # Get status of latest run
+                if gh run list --workflow=deploy.yml --limit 1 | grep -q "completed"; then
+                  if gh run list --workflow=deploy.yml --limit 1 | grep -q "success"; then
+                    echo "✓ Deploy to $env completed successfully"
+                    break
+                  else
+                    echo "✗ Deploy to $env failed"
+                    exit 1
+                  fi
                 fi
+                echo "Waiting for deploy to complete..."
+                sleep 10
               done
               
-              # Check final status
-              conclusion=$(gh api repos/$REPO/actions/runs/$run_id --jq .conclusion)
-              if [ "$conclusion" = "success" ]; then
-                echo "✓ Deploy to $env completed successfully"
-              else
-                echo "✗ Deploy to $env failed"
-                exit 1
-              fi
-              
-              # Reset status for test workflow
-              status=""
-              
-              # Trigger test workflow
               echo "Starting tests for $env environment"
-              gh workflow run reusable-test.yml -f environment=$env --ref ${{ github.ref }}
-              sleep 5
+              gh workflow run test.yml -f environment=$env --ref ${{ github.ref }}
+              echo "Triggered tests for $env"
               
-              # Wait for test workflow completion
-              until [ "$status" = "completed" ]; do
-                run_info=$(gh api repos/$REPO/actions/runs --jq ".workflow_runs[] | select(.name == \"Reusable Test Workflow\") | select(.status != \"completed\") | {id, status}" | head -n 1)
-                run_id=$(echo "$run_info" | grep -o '"id": [0-9]*' | cut -d' ' -f2)
-                status=$(echo "$run_info" | grep -o '"status": "[^"]*"' | cut -d'"' -f4)
-                
-                if [ -n "$run_id" ]; then
-                  echo "Waiting for tests in $env (Run ID: $run_id)..."
-                  sleep 10
-                else
-                  status="completed"
+              # Simple wait loop for tests
+              while true; do
+                # Get status of latest run
+                if gh run list --workflow=test.yml --limit 1 | grep -q "completed"; then
+                  if gh run list --workflow=test.yml --limit 1 | grep -q "success"; then
+                    echo "✓ Tests for $env completed successfully"
+                    break
+                  else
+                    echo "✗ Tests for $env failed"
+                    exit 1
+                  fi
                 fi
+                echo "Waiting for tests to complete..."
+                sleep 10
               done
-              
-              # Check final status
-              conclusion=$(gh api repos/$REPO/actions/runs/$run_id --jq .conclusion)
-              if [ "$conclusion" = "success" ]; then
-                echo "✓ Tests for $env completed successfully"
-              else
-                echo "✗ Tests for $env failed"
-                exit 1
-              fi
               
               echo "----------------------------------------"
             done
+  
